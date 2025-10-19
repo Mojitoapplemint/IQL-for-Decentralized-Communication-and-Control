@@ -46,9 +46,10 @@ class ComposedEnv(gym.Env):
         
         
     def reset(self, seed=None, options=None):
-        # self.string=self.L[np.random.randint(0, len(self.L))]
-        self.string=self.L[0]
+        self.string=self.L[np.random.randint(0, len(self.L))]
+        #self.string=self.L[0]
         self.string_index=0
+        self.reward=0
         
         self.global_state = 1
         self.agent_1_observation = 1
@@ -66,30 +67,28 @@ class ComposedEnv(gym.Env):
     def step(self, action):
         agent_id, communicate = action
         
-        reward=0
-        terminated=False
-        truncated=False
+
         info={}
         
-        alphabet=self.string[self.string_index]
+        curr_symbol=self.string[self.string_index]
         
-        self.global_state = self.global_transitions[self.global_state].get(alphabet)
+        self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
         if agent_id==1:
-            self.agent_1_observation = self.agent_1_transitions[self.agent_1_observation].get(alphabet)
+            self.agent_1_observation = self.agent_1_transitions[self.agent_1_observation].get(curr_symbol)
             if communicate == 1:
-                reward-=1
-                self.agent_2_observation = self.agent_2_transitions[self.agent_2_observation].get(alphabet)
+                self.reward-=1
+                self.agent_2_observation = self.agent_2_transitions[self.agent_2_observation].get(curr_symbol)
         elif agent_id==2:
-            self.agent_2_observation = self.agent_2_transitions[self.agent_2_observation].get(alphabet)
+            self.agent_2_observation = self.agent_2_transitions[self.agent_2_observation].get(curr_symbol)
             if communicate == 1:
-                reward-=1
-                self.agent_1_observation = self.agent_1_transitions[self.agent_1_observation].get(alphabet)
+                self.reward-=1
+                self.agent_1_observation = self.agent_1_transitions[self.agent_1_observation].get(curr_symbol)
         else:
             raise ValueError("Invalid agent_id. Must be 1 or 2.")
         
         self.string_index += 1
         if self.render_mode == 'human':
-            print(f"\nAgent {agent_id} {'communicated' if communicate else 'did not communicate'} on '{alphabet}'")
+            print(f"\nAgent {agent_id} {'communicated' if communicate else 'did not communicate'} on '{curr_symbol}'")
             self.render()
         
         if self.string[self.string_index]=='s':
@@ -105,17 +104,16 @@ class ComposedEnv(gym.Env):
 
             
             if config==(7,-1,-1) or config==(6,-1,-1):
-                reward-=10
+                self.reward-=10
             else:
-                reward+=10
-            terminated=True
+                self.reward+=10
         
         else:
             config=(self.global_state, self.agent_1_observation, self.agent_2_observation)
         
         info={"input_alphabet":self.string[self.string_index]}
         
-        return config, reward, terminated, truncated, info
+        return config, self.reward, None, None, info
             
     def render(self):
         print(f"Current Configuration<{self.global_state, self.agent_1_observation, self.agent_2_observation}>")
