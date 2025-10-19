@@ -2,11 +2,11 @@ import gymnasium as gym
 import numpy as np
 
 gym.register(
-    id="ComposedEnv-v0",
-    entry_point="env:ComposedEnv",
+    id="BenchmarkEnv-v0",
+    entry_point="benchmark_env:BenchmarkEnv",
 )
 
-class ComposedEnv(gym.Env):
+class BenchmarkEnv(gym.Env):
     global_transitions={
         1:{'a': 2, 'b': 3},
         2:{'b': 4},
@@ -36,7 +36,7 @@ class ComposedEnv(gym.Env):
     L=['abs$', 'bas$']
     
     def __init__(self, render_mode=None):
-        super(ComposedEnv, self).__init__()
+        super(BenchmarkEnv, self).__init__()
         
         self.action_space = gym.spaces.Discrete(2)  # Actions: 0: don't communicate, 1:communicate
         self.observation_space = gym.spaces.Box(low=-1, high=7, shape=(3,), dtype=np.int32)  # States: 1 to 7, plus terminal state 0
