@@ -5,7 +5,7 @@ This code is written by AI and modified by a human
 '''
 
 class RegexStringGenerator:
-    def __init__(self, max_star=10,):
+    def __init__(self, max_star=5,):
         self.max_star = max_star
     
     def set_max_star(self, max_star):
@@ -16,7 +16,7 @@ class RegexStringGenerator:
         """Generate pattern: ay*x (a followed by zero or more y's followed by x)"""
         result = "a"
         # Add zero or more y's
-        y_count = random.randint(0, self.max_star)
+        y_count = random.randint(0, self.max_star//2)
         result += "y" * y_count
         result += "x"
         return result
@@ -25,7 +25,7 @@ class RegexStringGenerator:
         """Generate pattern: by*b (b followed by zero or more y's followed by b)"""
         result = "b"
         # Add zero or more y's
-        y_count = random.randint(0, self.max_star)
+        y_count = random.randint(0, self.max_star//2)
         result += "y" * y_count
         result += "b"
         return result
@@ -34,7 +34,7 @@ class RegexStringGenerator:
         """Generate pattern: by*xa (b followed by zero or more y's followed by xa)"""
         result = "b"
         # Add zero or more y's
-        y_count = random.randint(0, self.max_star)
+        y_count = random.randint(0, self.max_star//2)
         result += "y" * y_count
         result += "xa"
         return result
@@ -42,7 +42,7 @@ class RegexStringGenerator:
     def gen_x_plus_y_star(self):
         """Generate (x+y)* """
         result = ""
-        length = random.randint(0, self.max_star)
+        length = random.randint(0, self.max_star//2)
         for _ in range(length):
             result += random.choice(["x", "y"])
         return result
@@ -50,7 +50,7 @@ class RegexStringGenerator:
     def gen_y_star(self):
         """Generate y* """
         result = ""
-        length = random.randint(0, self.max_star)
+        length = random.randint(0, self.max_star//2)
         for _ in range(length):
             result += "y"
         return result
@@ -139,7 +139,7 @@ class RegexStringGenerator:
                 # Second part: y(x+y)*a y* b (b y* b)* (a + b y* x a)
                 result += "y" + self.gen_x_plus_y_star() + "a" + self.gen_y_star() + "b"
                 # Generate (b y* b)* part
-                b_y_b_count = random.randint(0,self.max_star)  # Limit repetitions
+                b_y_b_count = random.randint(0,self.max_star//2)  # Limit repetitions
                 for _ in range(b_y_b_count):
                     result += "b" + self.gen_y_star() + "b"
                 
@@ -156,7 +156,7 @@ class RegexStringGenerator:
     def generate_full_training_str(self):
         result = self.generate_half_training_str()[:-1]
                 
-        num_maintenance_str = random.randint(0, self.max_star)
+        num_maintenance_str = random.randint(0, self.max_star//2)
         
         for _ in range(num_maintenance_str):
             result += self.generate_maintenance_str()        
@@ -166,7 +166,7 @@ class RegexStringGenerator:
     def generate_simulation_str(self):
         result = self.generate_half_training_str()
                 
-        num_maintenance_str = random.randint(0, self.max_star)
+        num_maintenance_str = random.randint(0, self.max_star*2)
         
         for _ in range(num_maintenance_str):
             result += self.generate_maintenance_str()

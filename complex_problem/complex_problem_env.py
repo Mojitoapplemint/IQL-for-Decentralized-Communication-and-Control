@@ -11,7 +11,7 @@ gym.register(
 
 class ComplexEnv(gym.Env):
 
-    COMMUNICATE_COST = 1
+    COMMUNICATE_COST = 10
     
     # symbol replacement
     #   a1 -> a  ,  e1 -> x
@@ -38,7 +38,7 @@ class ComplexEnv(gym.Env):
     
     def __init__(self, string_mode="full", render_mode=None, max_star=5):
         self.string_generator = RegexStringGenerator(max_star=max_star)
-        self.action_space = gym.spaces.Discrete(2)  # Actions: 0: don't communicate, 1:communicate
+        self.action_space = gym.spaces.Discrete(2)  # Actions: 0: communicate, 1:don't communicate
         self.observation_space = gym.spaces.Box(low=-1, high=5, shape=(3,), dtype=np.int32)
         
         assert string_mode is None or string_mode in self.metadata['string.modes']
@@ -55,8 +55,7 @@ class ComplexEnv(gym.Env):
         elif self.string_mode == "simulation":
             self.string=self.string_generator.generate_simulation_str()+"$"
         self.string_index=0
-        self.reward=0
-        
+        self.communication_count=0
         self.global_state = 0
         self.agent_1_observation = 0
         self.agent_2_observation = 0
@@ -89,6 +88,7 @@ class ComplexEnv(gym.Env):
         
     def step(self, action):
 
+        reward = 0
         agent_id, communicate = action
         info={}
         terminated = False
@@ -99,13 +99,15 @@ class ComplexEnv(gym.Env):
         self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
         if agent_id==1:
             self.agent_1_observation = self.local_transitions[self.agent_1_observation].get(curr_symbol)
-            if communicate == 1:
-                self.reward-=self.COMMUNICATE_COST
+            if communicate == 0:
+                reward-=self.COMMUNICATE_COST
+                self.communication_count+=1
                 self.agent_2_observation = self.local_transitions[self.agent_2_observation].get(curr_symbol)
         elif agent_id==2:
             self.agent_2_observation = self.local_transitions[self.agent_2_observation].get(curr_symbol)
-            if communicate == 1:
-                self.reward-=self.COMMUNICATE_COST
+            if communicate == 0:
+                self.communication_count+=1
+                reward-=self.COMMUNICATE_COST
                 self.agent_1_observation = self.local_transitions[self.agent_1_observation].get(curr_symbol)
         else:
             raise ValueError("Invalid agent_id. Must be 1 or 2.")
@@ -115,18 +117,24 @@ class ComplexEnv(gym.Env):
             self.render()
         
         if self.render_mode == "simulation":
+            if communicate == 0:
+                print(f"\nAgent {agent_id} communicated on '{curr_symbol}'")
             self.simulate(False)
         
         self.string_index += 1
         
         curr_symbol=self.string[self.string_index]
         
+
         while curr_symbol in ['x','y']:
-            if curr_symbol == 'x' and self.global_state == "4" and  (self.agent_1_observation == 4 or self.agent_2_observation == 4) and self.render_mode == "simulation":
-                print("here")
+            if (self.agent_1_observation == 4 or self.agent_2_observation == 4) and self.global_state == 4 and self.render_mode == "simulation":
                 self.simulate(True)
+                if  curr_symbol == 'y':
+                    self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
+                    self.agent_1_observation = self.local_transitions[self.agent_1_observation].get(curr_symbol)
+                    self.agent_2_observation = self.local_transitions[self.agent_2_observation].get(curr_symbol)
+                    self.simulate(False)
             else:
-                
                 self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
                 self.agent_1_observation = self.local_transitions[self.agent_1_observation].get(curr_symbol)
                 self.agent_2_observation = self.local_transitions[self.agent_2_observation].get(curr_symbol)
@@ -139,15 +147,15 @@ class ComplexEnv(gym.Env):
         
         # Penalty Assignment
         if self.global_state != 5 and ( self.agent_1_observation in [-1,5] and self.agent_2_observation in [-1,5]):
-            self.reward -= 10
+            reward -= 100
             terminated = True
         elif self.global_state == 5 and not(self.agent_1_observation == 5 or self.agent_2_observation == 5):
-            self.reward -= 10
+            reward -= 100
             terminated = True
         
         elif self.string[self.string_index]== "$" and self.global_state == 5 and (self.agent_1_observation == 5 or self.agent_2_observation == 5):
             terminated = True
-            self.reward += 20
+            reward += 50
         
         elif self.string[self.string_index]=="$" and self.global_state == 4:
             truncated = True
@@ -156,7 +164,7 @@ class ComplexEnv(gym.Env):
         
         info={"input_alphabet":self.string[self.string_index]}
         
-        return np.array(config, dtype=np.int32), self.reward, terminated, truncated, info
+        return np.array(config, dtype=np.int32), reward, terminated, truncated, info
     
     def render(self):
         print(f"Current symbol: '{self.string[self.string_index]}'")
@@ -165,11 +173,11 @@ class ComplexEnv(gym.Env):
     def simulate(self, disabled):
         a = [" ", " ", " ", " ", " "," "]
 
-        a[self.global_state] = "*"
+        a[self.global_state] = "#"
 
         block = "X" if disabled else "-"
 
-        print(f"Config: <{self.global_state}, {self.agent_1_observation}, {self.agent_2_observation}>, Current symbol: '{self.string[self.string_index]}'")
+        print(f"Config: <{self.global_state}, {self.agent_1_observation}, {self.agent_2_observation}>, Current symbol: '{self.string[self.string_index]}', # comm: {self.communication_count}")
         if disabled:
             if self.agent_1_observation == 4:
                 print("Agent 1 disabled x")
@@ -198,7 +206,7 @@ class ComplexEnv(gym.Env):
          "     + - +   a   + - +    x     + - +",
         sep="\n")
         
-        time.sleep(1)
+        time.sleep(2)
         clear_output()
         print()
         
