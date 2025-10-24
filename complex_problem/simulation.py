@@ -55,6 +55,8 @@ while not(terminated or truncated):
         
         _, agent_1_observation, agent_2_observation = config
         
+        is_q_2_lost = agent_2_observation == -1
+        
         curr_symbol=info['input_alphabet']
                     
     if curr_symbol == "b":
@@ -68,6 +70,8 @@ while not(terminated or truncated):
         config, reward, terminated, truncated, info = env.step((agent_id, agent_communicate_2))
         
         _, agent_1_observation, agent_2_observation = config
+        
+        is_q_1_lost = agent_1_observation == -1
         
         curr_symbol=info['input_alphabet']
         
