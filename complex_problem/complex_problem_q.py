@@ -50,8 +50,8 @@ def q_training(env, q_1, q_2, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
         terminated = False
         truncated = False
         
-        agent_communicate_1 = -1
-        agent_communicate_2 = -1
+        agent_1_communicate = -1
+        agent_2_communicate = -1
         
         q_1_update_delayed = False
         q_2_update_delayed = False
@@ -59,27 +59,27 @@ def q_training(env, q_1, q_2, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
         reward_1 = 0
         reward_2 = 0
         
-        is_q_1_lost = False
-        is_q_2_lost = False
+        agent_1_in_dead_state = False
+        agent_2_in_dead_state = False
         
         while not (terminated or truncated):
             if curr_symbol == "a":
                 
                 agent_id=1
-                agent_1_row_num = row_nums[(is_q_2_lost, agent_1_observation)]
+                agent_1_row_num = row_nums[(agent_2_in_dead_state, agent_1_observation)]
                 
                 if q_1_update_delayed:
                     # Q-value update for agent 1
-                    q_1[agent_1_prev_row_num][agent_communicate_1] += alpha * (reward_1 + gamma * np.max(q_1[agent_1_row_num]) - q_1[agent_1_prev_row_num][agent_communicate_1])
+                    q_1[agent_1_prev_row_num][agent_1_communicate] += alpha * (reward_1 + gamma * np.max(q_1[agent_1_row_num]) - q_1[agent_1_prev_row_num][agent_1_communicate])
                     q_1_update_delayed = False
                     reward_1 = 0
                 
-                agent_communicate_1 = get_action(q_1, is_q_2_lost, agent_1_row_num, epsilon)
-                config, reward, terminated, truncated, info = env.step((agent_id, agent_communicate_1))
+                agent_1_communicate = get_action(q_1, agent_2_in_dead_state, agent_1_row_num, epsilon)
+                config, reward, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
                 
                 _, agent_1_observation, agent_2_observation = config
                 
-                is_q_2_lost = agent_2_observation == -1
+                agent_2_in_dead_state = agent_2_observation == -1
                     
                 reward_1 += reward
                 
@@ -90,20 +90,20 @@ def q_training(env, q_1, q_2, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
                             
             if curr_symbol == "b":
                 agent_id=2
-                agent_2_row_num = row_nums[(is_q_1_lost, agent_2_observation)]
+                agent_2_row_num = row_nums[(agent_1_in_dead_state, agent_2_observation)]
                 
                 if q_2_update_delayed:
                     # Q-value update for agent 2
-                    q_2[agent_2_prev_row_num][agent_communicate_2] += alpha * (reward_2 + gamma * np.max(q_2[agent_2_row_num]) - q_2[agent_2_prev_row_num][agent_communicate_2])
+                    q_2[agent_2_prev_row_num][agent_2_communicate] += alpha * (reward_2 + gamma * np.max(q_2[agent_2_row_num]) - q_2[agent_2_prev_row_num][agent_2_communicate])
                     q_2_update_delayed = False
                     reward_2 = 0
                 
-                agent_communicate_2 = get_action(q_2, is_q_1_lost, agent_2_row_num, epsilon)
-                config, reward, terminated, truncated, info = env.step((agent_id, agent_communicate_2))
+                agent_2_communicate = get_action(q_2, agent_1_in_dead_state, agent_2_row_num, epsilon)
+                config, reward, terminated, truncated, info = env.step((agent_id, agent_2_communicate))
                 
                 _, agent_1_observation, agent_2_observation = config
                 
-                is_q_1_lost = agent_1_observation == -1
+                agent_1_in_dead_state = agent_1_observation == -1
                 
                 reward_2 += reward
                 
@@ -116,8 +116,8 @@ def q_training(env, q_1, q_2, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
         reward_2 += reward
         
         # Final Q-value updates
-        q_1[agent_1_prev_row_num][agent_communicate_1] += alpha * (reward_1 + gamma * 0 - q_1[agent_1_prev_row_num][agent_communicate_1])
-        q_2[agent_2_prev_row_num][agent_communicate_2] += alpha * (reward_2 + gamma * 0 - q_2[agent_2_prev_row_num][agent_communicate_2])
+        q_1[agent_1_prev_row_num][agent_1_communicate] += alpha * (reward_1 + gamma * 0 - q_1[agent_1_prev_row_num][agent_1_communicate])
+        q_2[agent_2_prev_row_num][agent_2_communicate] += alpha * (reward_2 + gamma * 0 - q_2[agent_2_prev_row_num][agent_2_communicate])
 
 q_training_env = gym.make('ComplexEnv-v0', render_mode=None, string_mode="full")
 
