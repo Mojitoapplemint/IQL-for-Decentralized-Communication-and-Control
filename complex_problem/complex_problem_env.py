@@ -34,17 +34,17 @@ class ComplexEnv(gym.Env):
         -1:{'a':-1, 'b':-1, 'x':-1, 'y':-1},
     }
     
-    metadata = {'render.modes': ['human', 'simulation'], 'string.modes': ['full', 'half', 'simulation']}
+    metadata = {'render_modes': ['human', 'simulation'], 'string_modes': ['full', 'half', 'simulation']}
     
     def __init__(self, string_mode="full", render_mode=None, max_star=5):
         self.string_generator = RegexStringGenerator(max_star=max_star)
         self.action_space = gym.spaces.Discrete(2)  # Actions: 0: communicate, 1:don't communicate
         self.observation_space = gym.spaces.Box(low=-1, high=5, shape=(3,), dtype=np.int32)
         
-        assert string_mode is None or string_mode in self.metadata['string.modes']
+        assert string_mode is None or string_mode in self.metadata['string_modes']
         self.string_mode = string_mode
         
-        assert render_mode is None or render_mode in self.metadata['render.modes']
+        assert render_mode is None or render_mode in self.metadata['render_modes']
         self.render_mode = render_mode
         
     def reset(self, seed=None, options=None):

@@ -10,7 +10,7 @@ gym.register(
 )
 
 class EvenMoreComplexEnv(gym.Env):
-    COMMUNICATE_COST = 15
+    COMMUNICATE_COST = 10
     
     # symbol replacement
     #    a1 -> a,   c1 -> c
@@ -103,23 +103,19 @@ class EvenMoreComplexEnv(gym.Env):
         -1:{'a':-1, 'c':-1, 'x':-1, 'y':-1, 'z':-1, 's':-1, 't':-1, 'r':-1}
     }
     
-    metadata = {'render.modes': ['human', 'simulation']}
+    metadata = {'render_modes': ['human', 'simulation']}
     
     def __init__(self, render_mode=None, max_star=5):
         self.action_space = gym.spaces.Discrete(2)  # Actions: 0: communicate, 1:don't communicate
         self.observation_space = gym.spaces.Box(low=-1, high=21, shape=(3,), dtype=np.int32)
         
-        assert render_mode is None or render_mode in self.metadata['render.modes']
+        assert render_mode is None or render_mode in self.metadata['render_modes']
         self.render_mode = render_mode
         
         self.string_generator = StringGenerator(max_star=max_star)
         
     def reset(self, seed=None, options=None):
         # Todo: Generate string
-        if self.render_mode == "simulation":
-            self.string=self.string_generator.generate_simulation_str()+"$"
-        else:
-            self.string=self.string_generator.generate_training_str()+"$"
         
         self.string_index = 0
         
@@ -131,27 +127,38 @@ class EvenMoreComplexEnv(gym.Env):
         
         self.communication_count = 0
         
-        if self.render_mode == 'human':
-            print(f"\nNew Episode: {self.string}")
-            self.render()
-        
         if self.render_mode == "simulation":
+            self.string=self.string_generator.generate_simulation_str()+"$"
+            # self.string="dagaazradxsafaytaaxc$"
             print(f"\nSimulation String: {self.string}")
             
-        if self.string[self.string_index] == 'd':
-            self.global_state = self.global_po_transitions[self.global_state].get('d')
+            self.simulate()
+            if self.string[self.string_index] == 'd':
+                self.global_state = self.simulation_transitions[self.global_state].get('d')
+                self.string_index += 1
+            self.simulate()
+        else:
+            self.string=self.string_generator.generate_training_str()+"$" 
+            # self.string = "aaazraaazraaazraaazraaxc$"       
+            if self.render_mode == 'human':
+                print(f"\nNew Episode: {self.string}")
+                self.render()
+        
+            
         
         config = (self.global_state, self.agent_1_observation, self.agent_2_observation)
         
-        info = {"input_alphabet":self.string[self.string_index]}
+        info = {"input_alphabet":self.string[self.string_index], "string":self.string }
         
         return np.array(config, dtype=np.int32), info
     
     def step(self, action):
+        if self.render_mode == "simulation":
+            return self.simulation_step(action)
+        
         reward = 0
         agent_id, communicate = action
         terminated = False
-        truncated = False
         
         curr_symbol=self.string[self.string_index]
         
@@ -160,12 +167,10 @@ class EvenMoreComplexEnv(gym.Env):
             self.agent_1_observation = self.local_po_transitions[self.agent_1_observation].get(curr_symbol)
             if communicate == 0:
                 reward-=self.COMMUNICATE_COST
-                self.communication_count+=1
                 self.agent_2_observation = self.local_po_transitions[self.agent_2_observation].get(curr_symbol)
         elif agent_id==2:
             self.agent_2_observation = self.local_po_transitions[self.agent_2_observation].get(curr_symbol)
             if communicate == 0:
-                self.communication_count+=1
                 reward-=self.COMMUNICATE_COST
                 self.agent_1_observation = self.local_po_transitions[self.agent_1_observation].get(curr_symbol)
         else:
@@ -179,43 +184,117 @@ class EvenMoreComplexEnv(gym.Env):
         
         curr_symbol=self.string[self.string_index]
         
-        if curr_symbol in ['d','g', 'f']:
-            self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
+        # reward assignment
             
-            if self.render_mode == 'human':
-                self.render()
+        
+        if self.global_state ==11 and (self.agent_1_observation ==11 or self.agent_2_observation ==11):
+            reward += 200
+            terminated = True
+        elif self.global_state ==9 and (self.agent_1_observation ==9 or self.agent_2_observation ==9):
+            reward += 200
+            terminated = True
+        elif self.string[self.string_index]=="$":
+            reward -= 100
+            terminated = True
+        
+        if (self.agent_1_observation != self.global_state) and (self.agent_2_observation != self.global_state):
+            reward -= 50
+        
+        
+        config = (self.global_state, self.agent_1_observation, self.agent_2_observation)
+        info = {"input_alphabet":self.string[self.string_index], "string":self.string}
+        return np.array(config, dtype=np.int32), reward, terminated, False, info
+    
+    def render(self):
+        print(f"Current symbol: '{self.string[self.string_index]}'")
+        print(f"Config: <{self.global_state}, {self.agent_1_observation}:{self.po[self.agent_1_observation]}, {self.agent_2_observation}:{self.po[self.agent_2_observation]}>, Current symbol: '{self.string[self.string_index]}'")
+    
+    def simulation_step(self, action):
+        agent_id, communicate = action
+        terminated = False
+        
+        curr_symbol=self.string[self.string_index]
+        
+        if curr_symbol == 'c':
+            if self.global_state not in [7,10]:
+                raise ValueError("Disable action can only be taken at state 7 or 10 in simulation.")
+            
+            # Control Policy: If in state 7, disable 'c'
+            agent_1_disable_c = self.agent_1_observation == 7
+            agent_2_disable_c = self.agent_2_observation == 7
+            
+            if not (agent_1_disable_c or agent_2_disable_c):
+                self.global_state = self.simulation_transitions[self.global_state].get(curr_symbol)
+                self.agent_1_observation = self.local_po_transitions[self.agent_1_observation].get(curr_symbol)
+                if communicate == 0:
+                    self.communication_count+=1
+                    self.agent_2_observation = self.local_po_transitions[self.agent_2_observation].get(curr_symbol)
+            
+            self.simulate(True, agent_1_disable_c, agent_2_disable_c)
+        else:
+            self.global_state = self.simulation_transitions[self.global_state].get(curr_symbol)
+            if agent_id==1:
+                self.agent_1_observation = self.local_po_transitions[self.agent_1_observation].get(curr_symbol)
+                if communicate == 0:
+                    self.communication_count+=1
+                    self.agent_2_observation = self.local_po_transitions[self.agent_2_observation].get(curr_symbol)
+            elif agent_id==2:
+                self.agent_2_observation = self.local_po_transitions[self.agent_2_observation].get(curr_symbol)
+                if communicate == 0:
+                    self.communication_count+=1
+                    self.agent_1_observation = self.local_po_transitions[self.agent_1_observation].get(curr_symbol)
+            else:
+                raise ValueError("Invalid agent_id. Must be 1 or 2.")
+            
+            if communicate == 0:
+                print(f"\nAgent {agent_id} communicated on '{curr_symbol}'")
+
+            self.simulate()
+        
+        self.string_index += 1
+        
+        curr_symbol=self.string[self.string_index]
+        
+        if curr_symbol in ['d','g', 'f']:
+            self.global_state = self.simulation_transitions[self.global_state].get(curr_symbol)
+            self.simulate()
             
             self.string_index += 1
             curr_symbol=self.string[self.string_index]
         
-        # reward assignment
-        if self.global_state not in [9,11] and self.agent_1_observation in [-1,9,11] and self.agent_2_observation in [-1,9,11]:
-            reward -= 50  # both agents think the system is in accepting state but it is not
-            terminated = True
-        elif self.global_state in [9,11] and (self.agent_1_observation not in [9,11] or self.agent_2_observation not in [9,11]):
-            reward -= 50  # one or both agents think the system is not in accepting state but it is
-            terminated = True
-        elif self.global_state ==9 and self.agent_1_observation ==9 or self.agent_2_observation ==9:
-            reward += 50
-            terminated = True
-        elif self.global_state ==11 and self.agent_1_observation ==11 or self.agent_2_observation ==11:
-            reward += 50
-            terminated = True
         
-        if self.render_mode == "simulation" and self.string[self.string_index]=="$" and self.global_state == 7:
-            # condition for simulation where agent successfully disable c at state 7
-            truncated = True
+        if self.string[self.string_index]=="$":
+            terminated = True
         
         config = (self.global_state, self.agent_1_observation, self.agent_2_observation)
-        info = {"input_alphabet":self.string[self.string_index]}
-        return np.array(config, dtype=np.int32), reward, terminated, truncated, info
-        
-    def render(self):
-        print(f"Current symbol: '{self.string[self.string_index]}'")
-        print(f"Config: <{self.global_state}, {self.agent_1_observation}, {self.agent_2_observation}>")  
-        print(f"Config: <{self.po[self.global_state]}, {self.po[self.agent_1_observation]}, {self.po[self.agent_2_observation]}>")  
+        info = {"input_alphabet":self.string[self.string_index], "string":self.string}
+        return np.array(config, dtype=np.int32), -1, terminated, False, info
     
-    def simulate(self, disabled=True):
+    def simulate(self, seven_or_ten=False, agent_1_disable_c=None, agent_2_disable_c=None):
+        
+        a = [" " for _ in range(22)]
+        a[self.global_state] = "#"
+        
+        print(f"Config: <{self.global_state}, {self.agent_1_observation}:{self.po[self.agent_1_observation]}, {self.agent_2_observation}:{self.po[self.agent_2_observation]}>, Current symbol: '{self.string[self.string_index]}', # comm: {self.communication_count}")
+        
+        
+        block = "|"
+        
+        if seven_or_ten:
+            if agent_1_disable_c or agent_2_disable_c:
+                block = "X" 
+            if agent_1_disable_c:
+                print(f"Agent 1 disables 'c' at state {self.agent_1_observation}")
+            if agent_2_disable_c:
+                print(f"Agent 2 disables 'c' at state {self.agent_2_observation}")
+            
+            if self.global_state == 7 and not (agent_1_disable_c or agent_2_disable_c):
+                print("Failed to disable 'c'")
+            elif self.global_state == 10 and (agent_1_disable_c or agent_2_disable_c):
+                print("Failed to enable 'c'")
+            else:
+                print("Successfully controlled 'c'")
+            
         
         
         print(
@@ -223,45 +302,48 @@ class EvenMoreComplexEnv(gym.Env):
     "             |               \n"
     "             V               \n"
     "           +-1-+             \n"
-   f"           |   |             \n"
+   f"           | {a[1]} |             \n"
     "           +---+             \n"
     "           /   \             \n"
     "        a /     \ d          \n"
     "         V       V           \n"
     "       +-2-+     +-3-+        \n"
-   f"   --->|   |     |   |-------- \n"
+   f"   --->| {a[2]} |     | {a[3]} |-------- \n"
     "   |   +---+     +---+        |    \n" 
     " a |   /   |                  | a  \n"
     "   |  / d  | x                |    \n"
     "   | V     V                  V \n"
     "  +-4-+  +-6-+              +-5-+\n"
-   f"  |   |  |   |       ------>|   |----------\n"
+   f"  | {a[4]} |  | {a[6]} |       ------>| {a[5]} |----------\n"
     "  +---+  +---+      /       +---+          \       \n"
     "         /         /       /  |   \         \      \n"
     "      a /         /     g /   | a  \ d       \ f   \n"
     "       V         /       V    V     V         V    \n"
     "   +-7-+        /   +-12-+  +-8-+   +-20-+  +-17-+ \n"
-   f"   |   |       |    |    |  |   |   |    |  |    | \n"
+   f"   | {a[7]} |       |    | {a[12]}  |  | {a[8]} |   | {a[20]}  |  | {a[17]}  | \n"
     "   +---+       |    +----+  +---+   +----+  +----+ \n"
-    "     |         |      |       |       |       |    \n"
-    "   c |         |    a |     x |       |       | a  \n"
+    f"     {block}         |      |       {block}       |       |    \n"
+    f"   c {block}         |    a |     x {block}       |       | a  \n"
     "     V         |      V       V       |       V    \n"
     "   +=9=+       |    +-13-+  +-10-+    |     +-18-+ \n"
-   f"  ||   ||      |    |    |  |    |    | x   |    | \n"
+   f"  || {a[9]} ||      |    | {a[13]}  |  | {a[10]}  |    | x   | {a[18]}  | \n"
     "   +===+       |    +----+  +----+    |     +----+ \n"
     "               |      |       |       |       |    \n"
     "               |    a |     c |       |       | y  \n"
     "               |      V       V       V       V    \n"
     "               |    +-14-+  +=11=+  +-21-+  +-19-+ \n"
-   f"             a |    |    |  ||  ||  |    |  |    | \n"
+   f"             a |    | {a[14]}  |  ||{a[11]} ||  | {a[21]}  |  | {a[19]}  | \n"
     "               |    +----+  +====+  +----+  +----+ \n"
     "               |      |               |       |    \n"
     "               |    z |               |       |    \n"
     "               |      V               | s     |    \n"
     "               |    +-15-+            |       | t  \n"
-   f"               |    |    |            |       |    \n"
+   f"               |    | {a[15]}  |            |       |    \n"
     "                \   +----+            V       |    \n"
     "                 \      \    r     +-16-+     |    \n"
-   f"                  \      --------->|    |<-----    \n"
+   f"                  \      --------->| {a[16]}  |<-----    \n"
     "                   \               +----+          \n"
     "                    \_________________|            \n") 
+        time.sleep(1)
+        clear_output()
+        print()
