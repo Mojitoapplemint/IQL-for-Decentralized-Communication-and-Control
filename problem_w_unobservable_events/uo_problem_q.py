@@ -4,9 +4,9 @@ import pandas as pd
 import random
 import sys
 sys.path.insert(0, './even_more_complex_problem')
-import even_more_complex_problem_env
+import problem_w_unobservable_events.uo_problem_env as uo_problem_env
 
-ROW_NUMS_1={
+PHI_1={
     (1, 'a'):0,
     (2, 'a'):1,
     (3, 'a'):2,
@@ -49,7 +49,7 @@ ROW_NUMS_1={
     (-1,'c'):39,
 }
 
-ROW_NUMS_2={
+PHI_2={
     (1, 'x'):0,
     (2, 'x'):1,
     (3, 'x'):2,
@@ -211,7 +211,7 @@ def q_training(env, q_1, q_2,epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
             if curr_symbol in ['a', 'c']:
                 
                 agent_id=1
-                agent_1_row_num = len(ROW_NUMS_1)+ROW_NUMS_1[(agent_1_observation, curr_symbol)] if agent_2_in_dead_state else ROW_NUMS_1[(agent_1_observation, curr_symbol)]
+                agent_1_row_num = len(PHI_1)+PHI_1[(agent_1_observation, curr_symbol)] if agent_2_in_dead_state else PHI_1[(agent_1_observation, curr_symbol)]
 
                 
                 if agent_1_prev_row_num != -1 :
@@ -234,7 +234,7 @@ def q_training(env, q_1, q_2,epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
                             
             if curr_symbol in ['x', 'y', 'z', 's', 't', 'r']:
                 agent_id=2
-                agent_2_row_num = len(ROW_NUMS_2)+ROW_NUMS_2[(agent_2_observation, curr_symbol)] if agent_1_in_dead_state else ROW_NUMS_2[(agent_2_observation, curr_symbol)]
+                agent_2_row_num = len(PHI_2)+PHI_2[(agent_2_observation, curr_symbol)] if agent_1_in_dead_state else PHI_2[(agent_2_observation, curr_symbol)]
 
                 
                 if agent_2_prev_row_num != -1 :
@@ -267,8 +267,8 @@ def q_training(env, q_1, q_2,epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
 
 q_training_env = gym.make('EvenMoreComplexEnv-v0', render_mode=None)
 
-q_1 = np.zeros((2*len(ROW_NUMS_1), q_training_env.action_space.n))
-q_2 = np.zeros((2*len(ROW_NUMS_2), q_training_env.action_space.n))
+q_1 = np.zeros((2*len(PHI_1), q_training_env.action_space.n))
+q_2 = np.zeros((2*len(PHI_2), q_training_env.action_space.n))
 
 # q_1 = pd.read_csv("./even_more_complex_problem/demo_q1_table.csv")
 # q_2 = pd.read_csv("./even_more_complex_problem/demo_q2_table.csv")
@@ -281,7 +281,7 @@ q_training(q_training_env, q_1, q_2, epochs=1000000, alpha=0.01, gamma=0.5, epsi
 q_1_df = pd.DataFrame(q_1, columns=["do not communcate", "communicate"])
 q_2_df = pd.DataFrame(q_2, columns=["do not communcate", "communicate"])
 
-q_1_df.to_csv(f'even_more_complex_problem/demo_q1_table.csv')
-q_2_df.to_csv(f'even_more_complex_problem/demo_q2_table.csv')
+q_1_df.to_csv(f'problem_w_unobservable_events/demo_q1_table.csv')
+q_2_df.to_csv(f'problem_w_unobservable_events/demo_q2_table.csv')
 
 # Training done, go to simulation.py for simulation

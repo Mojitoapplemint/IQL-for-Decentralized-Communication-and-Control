@@ -99,13 +99,13 @@ class ComplexEnv(gym.Env):
         self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
         if agent_id==1:
             self.agent_1_observation = self.local_transitions[self.agent_1_observation].get(curr_symbol)
-            if communicate == 0:
+            if communicate == 1:
                 reward-=self.COMMUNICATE_COST
                 self.communication_count+=1
                 self.agent_2_observation = self.local_transitions[self.agent_2_observation].get(curr_symbol)
         elif agent_id==2:
             self.agent_2_observation = self.local_transitions[self.agent_2_observation].get(curr_symbol)
-            if communicate == 0:
+            if communicate == 1:
                 self.communication_count+=1
                 reward-=self.COMMUNICATE_COST
                 self.agent_1_observation = self.local_transitions[self.agent_1_observation].get(curr_symbol)
@@ -117,7 +117,7 @@ class ComplexEnv(gym.Env):
             self.render()
         
         if self.render_mode == "simulation":
-            if communicate == 0:
+            if communicate == 1:
                 print(f"\nAgent {agent_id} communicated on '{curr_symbol}'")
             self.simulate(False)
         

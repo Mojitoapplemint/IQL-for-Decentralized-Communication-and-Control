@@ -1,7 +1,7 @@
 import numpy as np
 import gymnasium as gym
 import pandas as pd
-import even_more_complex_problem_env
+import problem_w_unobservable_events.uo_problem_env as uo_problem_env
 ROW_NUMS_1={
     (1, 'a'):0,
     (2, 'a'):1,

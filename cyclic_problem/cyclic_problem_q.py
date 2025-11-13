@@ -4,9 +4,9 @@ import pandas as pd
 import random
 import sys
 sys.path.insert(0, './complex_problem')
-import complex_problem_env
+import cyclic_problem.cyclic_problem_env as cyclic_problem_env
 
-row_nums = {
+PHI = {
     (False, 0 ):0,
     (False, 1 ):1,
     (False, 2 ):2,
@@ -26,7 +26,7 @@ row_nums = {
 
 def get_action(q_table, is_opponent_lost, row_num, epsilon):
     if is_opponent_lost:
-        return 1
+        return 0
     if random.uniform(0, 1) < epsilon:
         return np.argmin(q_table[row_num]) # Explore: choose the action that is not best
     else:
@@ -63,7 +63,7 @@ def q_training(env, q_1, q_2, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
             if curr_symbol == "a":
                 
                 agent_id=1
-                agent_1_row_num = row_nums[(agent_2_in_dead_state, agent_1_observation)]
+                agent_1_row_num = PHI[(agent_2_in_dead_state, agent_1_observation)]
                 
                 if agent_1_prev_row_num != -1 :
                     # Q-value update for agent 1
@@ -85,7 +85,7 @@ def q_training(env, q_1, q_2, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
                             
             if curr_symbol == "b":
                 agent_id=2
-                agent_2_row_num = row_nums[(agent_1_in_dead_state, agent_2_observation)]
+                agent_2_row_num = PHI[(agent_1_in_dead_state, agent_2_observation)]
                 
                 if agent_2_prev_row_num != -1:
                     # Q-value update for agent 2
@@ -114,15 +114,15 @@ def q_training(env, q_1, q_2, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
 
 q_training_env = gym.make('ComplexEnv-v0', render_mode=None, string_mode="full")
 
-q_1 = np.zeros((len(row_nums), q_training_env.action_space.n))
-q_2 = np.zeros((len(row_nums), q_training_env.action_space.n))
+q_1 = np.zeros((len(PHI), q_training_env.action_space.n))
+q_2 = np.zeros((len(PHI), q_training_env.action_space.n))
 
 q_training(q_training_env, q_1, q_2, epochs=1000000, alpha=0.01, gamma=0.5, epsilon=0.1)
 
-q_1_df = pd.DataFrame(q_1, columns=["communicate", "do not communcate"])
-q_2_df = pd.DataFrame(q_2, columns=["communicate", "do not communcate"])
+q_1_df = pd.DataFrame(q_1, columns=["do not communcate", "communicate"])
+q_2_df = pd.DataFrame(q_2, columns=["do not communcate", "communicate"])
 
-q_1_df.to_csv(f'complex_problem/demo_q1_table.csv')
-q_2_df.to_csv(f'complex_problem/demo_q2_table.csv')
+q_1_df.to_csv(f'cyclic_problem/demo_q1_table.csv')
+q_2_df.to_csv(f'cyclic_problem/demo_q2_table.csv')
 
 # Training done, go to simulation.py for simulation

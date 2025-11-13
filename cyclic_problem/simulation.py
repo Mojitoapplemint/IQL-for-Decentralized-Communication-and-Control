@@ -2,7 +2,7 @@ import numpy as np
 import gymnasium as gym
 import pandas as pd
 import random
-import complex_problem_env
+import cyclic_problem.cyclic_problem_env as cyclic_problem_env
 
 q_1 = pd.read_csv("./complex_problem/demo_q1_table.csv")
 q_2 = pd.read_csv("./complex_problem/demo_q2_table.csv")

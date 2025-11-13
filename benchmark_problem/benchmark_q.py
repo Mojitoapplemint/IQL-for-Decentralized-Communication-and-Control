@@ -105,8 +105,8 @@ def q_main(env, model_name, epochs=10000, epsilon=0.1, gamma=0.1, alpha=0.1):
     
     q_1_df = pd.DataFrame(q_1, columns=['Do Not Communicate', 'Communicate'], index=[i for i in range(5)])
     q_2_df = pd.DataFrame(q_2, columns=['Do Not Communicate', 'Communicate'], index=[i for i in range(5)])
-    q_1_df.to_csv(f"./Benchmark/{model_name}_q_1.csv")
-    q_2_df.to_csv(f"./Benchmark/{model_name}_q_2.csv")
+    q_1_df.to_csv(f"./benchmark_problem/{model_name}_q_1.csv")
+    q_2_df.to_csv(f"./benchmark_problem/{model_name}_q_2.csv")
     
 env = gym.make('BenchmarkEnv-v0', render_mode=None)
 q_main(env, '100000_epoch', epochs=100000, alpha=0.01)
