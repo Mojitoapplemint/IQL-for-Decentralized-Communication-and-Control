@@ -3,8 +3,8 @@ import gymnasium as gym
 import pandas as pd
 import random
 import sys
-sys.path.insert(0, './complex_problem')
-import cyclic_problem.cyclic_problem_env as cyclic_problem_env
+sys.path.insert(0, './cyclic_problem')
+import cyclic_problem_env
 
 PHI = {
     (False, 0 ):0,
@@ -112,7 +112,7 @@ def q_training(env, q_1, q_2, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
         q_1[agent_1_prev_row_num][agent_1_communicate] += alpha * (reward_1 + gamma * 0 - q_1[agent_1_prev_row_num][agent_1_communicate])
         q_2[agent_2_prev_row_num][agent_2_communicate] += alpha * (reward_2 + gamma * 0 - q_2[agent_2_prev_row_num][agent_2_communicate])
 
-q_training_env = gym.make('ComplexEnv-v0', render_mode=None, string_mode="full")
+q_training_env = gym.make('CylicEnv-v0', render_mode=None, string_mode="full")
 
 q_1 = np.zeros((len(PHI), q_training_env.action_space.n))
 q_2 = np.zeros((len(PHI), q_training_env.action_space.n))

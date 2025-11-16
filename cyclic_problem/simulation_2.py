@@ -2,10 +2,10 @@ import numpy as np
 import gymnasium as gym
 import pandas as pd
 import random
-import cyclic_problem.cyclic_problem_env as cyclic_problem_env
+import cyclic_problem_env
 
-q_1 = pd.read_csv("./complex_problem/demo_q1_table.csv")
-q_2 = pd.read_csv("./complex_problem/demo_q2_table.csv")
+q_1 = pd.read_csv("./cyclic_problem/demo_q1_table.csv")
+q_2 = pd.read_csv("./cyclic_problem/demo_q2_table.csv")
 q_1 = q_1.drop(q_1.columns[[0]], axis=1).to_numpy()
 q_2 = q_2.drop(q_2.columns[[0]], axis=1).to_numpy()
 
@@ -32,7 +32,7 @@ test_count = 100000
 for i in range (test_count):
     if (i%100==0):
             print(str(100*i/test_count)+"%","done" , end="\r")
-    env = gym.make("ComplexEnv-v0", render_mode = None, string_mode="full")
+    env = gym.make("CylicEnv-v0", render_mode = None, string_mode="full")
 
     terminated = False
     truncated = False

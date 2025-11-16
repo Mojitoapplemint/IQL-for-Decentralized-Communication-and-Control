@@ -3,8 +3,8 @@ import gymnasium as gym
 import pandas as pd
 import random
 import sys
-sys.path.insert(0, './even_more_complex_problem')
-import problem_w_unobservable_events.uo_problem_env as uo_problem_env
+sys.path.insert(0, './problem_w_unobservable_events')
+import  uo_problem_env
 
 PHI_1={
     (1, 'a'):0,
@@ -265,15 +265,10 @@ def q_training(env, q_1, q_2,epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1):
         q_2[agent_2_prev_row_num][agent_2_communicate] += alpha * (reward_2 + gamma * 0 - q_2[agent_2_prev_row_num][agent_2_communicate])
 
 
-q_training_env = gym.make('EvenMoreComplexEnv-v0', render_mode=None)
+q_training_env = gym.make('UOEnv-v0', render_mode=None)
 
 q_1 = np.zeros((2*len(PHI_1), q_training_env.action_space.n))
 q_2 = np.zeros((2*len(PHI_2), q_training_env.action_space.n))
-
-# q_1 = pd.read_csv("./even_more_complex_problem/demo_q1_table.csv")
-# q_2 = pd.read_csv("./even_more_complex_problem/demo_q2_table.csv")
-# q_1 = q_1.drop(q_1.columns[[0]], axis=1).to_numpy()
-# q_2 = q_2.drop(q_2.columns[[0]], axis=1).to_numpy()
 
 q_training(q_training_env, q_1, q_2, epochs=1000000, alpha=0.01, gamma=0.5, epsilon=0.1)
 

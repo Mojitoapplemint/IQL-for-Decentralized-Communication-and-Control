@@ -7,7 +7,9 @@ gym.register(
 )
 
 class BenchmarkEnv(gym.Env):
-    global_transitions={
+    COMMUNICATION_COST = 10
+    
+    agent_0_transitions={
         1:{'a': 2, 'b': 3},
         2:{'b': 4},
         3:{'a': 5},
@@ -15,20 +17,12 @@ class BenchmarkEnv(gym.Env):
         5:{'s': 7},
     }
     
-    agent_1_transitions={
-        1:{'a': 2, 'b': 3},
-        2:{'b': 4, 's':-1},
-        3:{'a': 5},
-        4:{'s': 6},
-        5:{'s': 7},
-    }
-    
-    agent_2_transitions={
-        1:{'a': 2, 'b': 3},
-        2:{'b': 4},
-        3:{'a': 5, 's':-1},
-        4:{'s': 6},
-        5:{'s': 7},
+    bottom_transitions={
+        1:{'a': 2, 'b': 3, 's':-1},
+        2:{'b': 4, 'a':-1, 's':-1},
+        3:{'a': 5, 'b': -1, 's':-1},
+        4:{'s': 6, 'a':-1, 'b':-1},
+        5:{'s': 7, 'a':-1, 'b':-1},
     }
     
     metadata = {'render.modes': ['human']}
@@ -51,11 +45,11 @@ class BenchmarkEnv(gym.Env):
         self.string_index=0
         self.reward=0
         
-        self.global_state = 1
-        self.agent_1_observation = 1
-        self.agent_2_observation = 1
+        self.agent_0_state = 1
+        self.agent_1_belief = 1
+        self.agent_2_belief = 1
         
-        config=(self.global_state, self.agent_1_observation, self.agent_2_observation)
+        config=(self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
         
         info={"input_alphabet":self.string[self.string_index]}
         
@@ -72,17 +66,17 @@ class BenchmarkEnv(gym.Env):
         
         curr_symbol=self.string[self.string_index]
         
-        self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
+        self.agent_0_state = self.agent_0_transitions[self.agent_0_state].get(curr_symbol)
         if agent_id==1:
-            self.agent_1_observation = self.agent_1_transitions[self.agent_1_observation].get(curr_symbol)
+            self.agent_1_belief = self.agent_1_transitions[self.agent_1_belief].get(curr_symbol)
             if communicate == 1:
-                self.reward-=1
-                self.agent_2_observation = self.agent_2_transitions[self.agent_2_observation].get(curr_symbol)
+                self.reward-=self.COMMUNICATION_COST
+                self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
         elif agent_id==2:
-            self.agent_2_observation = self.agent_2_transitions[self.agent_2_observation].get(curr_symbol)
+            self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
             if communicate == 1:
-                self.reward-=1
-                self.agent_1_observation = self.agent_1_transitions[self.agent_1_observation].get(curr_symbol)
+                self.reward-=self.COMMUNICATION_COST
+                self.agent_1_belief = self.agent_1_transitions[self.agent_1_belief].get(curr_symbol)
         else:
             raise ValueError("Invalid agent_id. Must be 1 or 2.")
         
@@ -92,11 +86,11 @@ class BenchmarkEnv(gym.Env):
             self.render()
         
         if self.string[self.string_index]=='s':
-            self.global_state=self.global_transitions[self.global_state].get('s')
-            self.agent_1_observation=self.agent_1_transitions[self.agent_1_observation].get('s')
-            self.agent_2_observation=self.agent_2_transitions[self.agent_2_observation].get('s')
+            self.agent_0_state=self.agent_0_transitions[self.agent_0_state].get('s')
+            self.agent_1_belief=self.agent_1_transitions[self.agent_1_belief].get('s')
+            self.agent_2_belief=self.bottom_transitions[self.agent_2_belief].get('s')
 
-            config=(self.global_state, self.agent_1_observation, self.agent_2_observation)
+            config=(self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
             
             self.string_index+=1
             if self.render_mode == 'human':
@@ -104,17 +98,17 @@ class BenchmarkEnv(gym.Env):
 
             
             if config==(7,-1,-1) or config==(6,-1,-1):
-                self.reward-=10
+                self.reward-=100
             else:
-                self.reward+=10
+                self.reward+=100
         
         else:
-            config=(self.global_state, self.agent_1_observation, self.agent_2_observation)
+            config=(self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
         
         info={"input_alphabet":self.string[self.string_index]}
         
         return config, self.reward, None, None, info
             
     def render(self):
-        print(f"Current Configuration<{self.global_state, self.agent_1_observation, self.agent_2_observation}>")
+        print(f"Current Configuration<{self.agent_0_state, self.agent_1_belief, self.agent_2_belief}>")
         print(f"Current Alphabet: {self.string[self.string_index]}")

@@ -5,11 +5,11 @@ import time
 from str_generator import StringGenerator
 
 gym.register(
-    id="EvenMoreComplexEnv-v0",
-    entry_point="even_more_complex_problem_env:EvenMoreComplexEnv",
+    id="UOEnv-v0",
+    entry_point="uo_problem_env:UOEnv",
 )
 
-class EvenMoreComplexEnv(gym.Env):
+class UOEnv(gym.Env):
     COMMUNICATE_COST = 10
     
     # symbol replacement
@@ -62,7 +62,7 @@ class EvenMoreComplexEnv(gym.Env):
         -1: -1,
     }
     
-    global_po_transitions={
+    agent_0_transitions={
         1:{'a':2},
         2:{'x':3, 'a':5},
         3:{'a':7, 's':16},
@@ -82,7 +82,7 @@ class EvenMoreComplexEnv(gym.Env):
         21:{'s':16},
     }
 
-    local_po_transitions={
+    bottom_trantitions={
         1:{'a':2,                  'c':-1, 'x':-1, 'y':-1, 'z':-1, 's':-1, 't':-1, 'r':-1},
         2:{'x':3, 'a':5,           'c':-1, 'y':-1, 'z':-1, 's':-1, 't':-1, 'r':-1},
         3:{'a':7, 's':16,          'c':-1, 'x':-1, 'y':-1, 'z':-1, 't':-1, 'r':-1},
@@ -119,11 +119,11 @@ class EvenMoreComplexEnv(gym.Env):
         
         self.string_index = 0
         
-        self.global_state = 1
+        self.agent_0_state = 1
         
         # Initialize agents' partial observations 
-        self.agent_1_observation = 1
-        self.agent_2_observation = 1
+        self.agent_1_belief = 1
+        self.agent_2_belief = 1
         
         self.communication_count = 0
         
@@ -134,7 +134,7 @@ class EvenMoreComplexEnv(gym.Env):
             
             self.simulate()
             if self.string[self.string_index] == 'd':
-                self.global_state = self.simulation_transitions[self.global_state].get('d')
+                self.agent_0_state = self.simulation_transitions[self.agent_0_state].get('d')
                 self.string_index += 1
             self.simulate()
         else:
@@ -146,7 +146,7 @@ class EvenMoreComplexEnv(gym.Env):
         
             
         
-        config = (self.global_state, self.agent_1_observation, self.agent_2_observation)
+        config = (self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
         
         info = {"input_alphabet":self.string[self.string_index], "string":self.string }
         
@@ -162,17 +162,17 @@ class EvenMoreComplexEnv(gym.Env):
         
         curr_symbol=self.string[self.string_index]
         
-        self.global_state = self.global_po_transitions[self.global_state].get(curr_symbol)
+        self.agent_0_state = self.agent_0_transitions[self.agent_0_state].get(curr_symbol)
         if agent_id==1:
-            self.agent_1_observation = self.local_po_transitions[self.agent_1_observation].get(curr_symbol)
+            self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
             if communicate == 1:
                 reward-=self.COMMUNICATE_COST
-                self.agent_2_observation = self.local_po_transitions[self.agent_2_observation].get(curr_symbol)
+                self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
         elif agent_id==2:
-            self.agent_2_observation = self.local_po_transitions[self.agent_2_observation].get(curr_symbol)
+            self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
             if communicate == 1:
                 reward-=self.COMMUNICATE_COST
-                self.agent_1_observation = self.local_po_transitions[self.agent_1_observation].get(curr_symbol)
+                self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
         else:
             raise ValueError("Invalid agent_id. Must be 1 or 2.")
                 
@@ -185,27 +185,27 @@ class EvenMoreComplexEnv(gym.Env):
         curr_symbol=self.string[self.string_index]
         
         # reward assignment
-        if self.global_state ==11 and (self.agent_1_observation ==11 or self.agent_2_observation ==11):
+        if self.agent_0_state ==11 and (self.agent_1_belief ==11 or self.agent_2_belief ==11):
             reward += 200
             terminated = True
-        elif self.global_state ==9 and (self.agent_1_observation ==9 or self.agent_2_observation ==9):
+        elif self.agent_0_state ==9 and (self.agent_1_belief ==9 or self.agent_2_belief ==9):
             reward += 200
             terminated = True
         elif self.string[self.string_index]=="$":
             reward -= 100
             terminated = True
         
-        if (self.agent_1_observation != self.global_state) and (self.agent_2_observation != self.global_state):
+        if (self.agent_1_belief != self.agent_0_state) and (self.agent_2_belief != self.agent_0_state):
             reward -= 50
         
         
-        config = (self.global_state, self.agent_1_observation, self.agent_2_observation)
+        config = (self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
         info = {"input_alphabet":self.string[self.string_index], "string":self.string}
         return np.array(config, dtype=np.int32), reward, terminated, False, info
     
     def render(self):
         print(f"Current symbol: '{self.string[self.string_index]}'")
-        print(f"Config: <{self.global_state}, {self.agent_1_observation}:{self.po[self.agent_1_observation]}, {self.agent_2_observation}:{self.po[self.agent_2_observation]}>, Current symbol: '{self.string[self.string_index]}'")
+        print(f"Config: <{self.agent_0_state}, {self.agent_1_belief}:{self.po[self.agent_1_belief]}, {self.agent_2_belief}:{self.po[self.agent_2_belief]}>, Current symbol: '{self.string[self.string_index]}'")
     
     def simulation_step(self, action):
         agent_id, communicate = action
@@ -214,33 +214,33 @@ class EvenMoreComplexEnv(gym.Env):
         curr_symbol=self.string[self.string_index]
         
         if curr_symbol == 'c':
-            if self.global_state not in [7,10]:
+            if self.agent_0_state not in [7,10]:
                 raise ValueError("Disable action can only be taken at state 7 or 10 in simulation.")
             
             # Control Policy: If in state 7, disable 'c'
-            agent_1_disable_c = self.agent_1_observation == 7
-            agent_2_disable_c = self.agent_2_observation == 7
+            agent_1_disable_c = self.agent_1_belief == 7
+            agent_2_disable_c = self.agent_2_belief == 7
             
             if not (agent_1_disable_c or agent_2_disable_c):
-                self.global_state = self.simulation_transitions[self.global_state].get(curr_symbol)
-                self.agent_1_observation = self.local_po_transitions[self.agent_1_observation].get(curr_symbol)
+                self.agent_0_state = self.simulation_transitions[self.agent_0_state].get(curr_symbol)
+                self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
                 if communicate == 1:
                     self.communication_count+=1
-                    self.agent_2_observation = self.local_po_transitions[self.agent_2_observation].get(curr_symbol)
+                    self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
             
             self.simulate(True, agent_1_disable_c, agent_2_disable_c)
         else:
-            self.global_state = self.simulation_transitions[self.global_state].get(curr_symbol)
+            self.agent_0_state = self.simulation_transitions[self.agent_0_state].get(curr_symbol)
             if agent_id==1:
-                self.agent_1_observation = self.local_po_transitions[self.agent_1_observation].get(curr_symbol)
+                self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
                 if communicate ==1:
                     self.communication_count+=1
-                    self.agent_2_observation = self.local_po_transitions[self.agent_2_observation].get(curr_symbol)
+                    self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
             elif agent_id==2:
-                self.agent_2_observation = self.local_po_transitions[self.agent_2_observation].get(curr_symbol)
+                self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
                 if communicate == 1:
                     self.communication_count+=1
-                    self.agent_1_observation = self.local_po_transitions[self.agent_1_observation].get(curr_symbol)
+                    self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
             else:
                 raise ValueError("Invalid agent_id. Must be 1 or 2.")
             
@@ -254,7 +254,7 @@ class EvenMoreComplexEnv(gym.Env):
         curr_symbol=self.string[self.string_index]
         
         if curr_symbol in ['d','g', 'f']:
-            self.global_state = self.simulation_transitions[self.global_state].get(curr_symbol)
+            self.agent_0_state = self.simulation_transitions[self.agent_0_state].get(curr_symbol)
             self.simulate()
             
             self.string_index += 1
@@ -264,16 +264,16 @@ class EvenMoreComplexEnv(gym.Env):
         if self.string[self.string_index]=="$":
             terminated = True
         
-        config = (self.global_state, self.agent_1_observation, self.agent_2_observation)
+        config = (self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
         info = {"input_alphabet":self.string[self.string_index], "string":self.string}
         return np.array(config, dtype=np.int32), -1, terminated, False, info
     
     def simulate(self, seven_or_ten=False, agent_1_disable_c=None, agent_2_disable_c=None):
         
         a = [" " for _ in range(22)]
-        a[self.global_state] = "#"
+        a[self.agent_0_state] = "#"
         
-        print(f"Config: <{self.global_state}, {self.agent_1_observation}:{self.po[self.agent_1_observation]}, {self.agent_2_observation}:{self.po[self.agent_2_observation]}>, Current symbol: '{self.string[self.string_index]}', # comm: {self.communication_count}")
+        print(f"Config: <{self.agent_0_state}, {self.agent_1_belief}:{self.po[self.agent_1_belief]}, {self.agent_2_belief}:{self.po[self.agent_2_belief]}>, Current symbol: '{self.string[self.string_index]}', # comm: {self.communication_count}")
         
         
         block = "|"
@@ -282,13 +282,13 @@ class EvenMoreComplexEnv(gym.Env):
             if agent_1_disable_c or agent_2_disable_c:
                 block = "X" 
             if agent_1_disable_c:
-                print(f"Agent 1 disables 'c' at state {self.agent_1_observation}")
+                print(f"Agent 1 disables 'c' at state {self.agent_1_belief}")
             if agent_2_disable_c:
-                print(f"Agent 2 disables 'c' at state {self.agent_2_observation}")
+                print(f"Agent 2 disables 'c' at state {self.agent_2_belief}")
             
-            if self.global_state == 7 and not (agent_1_disable_c or agent_2_disable_c):
+            if self.agent_0_state == 7 and not (agent_1_disable_c or agent_2_disable_c):
                 print("Failed to disable 'c'")
-            elif self.global_state == 10 and (agent_1_disable_c or agent_2_disable_c):
+            elif self.agent_0_state == 10 and (agent_1_disable_c or agent_2_disable_c):
                 print("Failed to enable 'c'")
             else:
                 print("Successfully controlled 'c'")

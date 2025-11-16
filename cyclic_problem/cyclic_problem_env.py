@@ -5,18 +5,18 @@ from IPython.display import clear_output
 import time
 
 gym.register(
-    id="ComplexEnv-v0",
-    entry_point="complex_problem_env:ComplexEnv",
+    id="CylicEnv-v0",
+    entry_point="cyclic_problem_env:CylicEnv",
 )
 
-class ComplexEnv(gym.Env):
+class CylicEnv(gym.Env):
 
     COMMUNICATE_COST = 10
     
     # symbol replacement
     #   a1 -> a  ,  e1 -> x
     #   a2 -> b  ,  e2 -> y
-    global_transitions={
+    agent_0_transitions={
         0:{'a':1,  'b':2,  'x':0,  'y':0},
         1:{'b':3,  'x':2,  'y':1},
         2:{'a':4},
@@ -24,7 +24,7 @@ class ComplexEnv(gym.Env):
         4:{'x':5, 'y':0}
     }
     
-    local_transitions={
+    bottom_transitions={
         0:{'a':1,  'b':2,  'x':0,  'y':0},
         1:{'a':-1, 'b':3,  'x':2,  'y':1},
         2:{'a':4,  'b':-1, 'x':-1, 'y':-1},
@@ -56,9 +56,9 @@ class ComplexEnv(gym.Env):
             self.string=self.string_generator.generate_simulation_str()+"$"
         self.string_index=0
         self.communication_count=0
-        self.global_state = 0
-        self.agent_1_observation = 0
-        self.agent_2_observation = 0
+        self.agent_0_state = 0
+        self.agent_1_belief = 0
+        self.agent_2_belief = 0
         
         if self.render_mode == 'human':
             print(f"\nNew Episode: {self.string}")
@@ -74,14 +74,14 @@ class ComplexEnv(gym.Env):
                 self.render()
             if self.render_mode == "simulation":
                 self.simulate(False)
-            self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
-            self.agent_1_observation = self.local_transitions[self.agent_1_observation].get(curr_symbol)
-            self.agent_2_observation = self.local_transitions[self.agent_2_observation].get(curr_symbol)
+            self.agent_0_state = self.agent_0_transitions[self.agent_0_state].get(curr_symbol)
+            self.agent_1_belief = self.bottom_transitions[self.agent_1_belief].get(curr_symbol)
+            self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
             self.string_index += 1
             curr_symbol=self.string[self.string_index]
 
         
-        config=(self.global_state, self.agent_1_observation, self.agent_2_observation)
+        config=(self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
         
         info={"input_alphabet":self.string[self.string_index]}
         return np.array(config, dtype=np.int32), info
@@ -96,19 +96,19 @@ class ComplexEnv(gym.Env):
         
         curr_symbol=self.string[self.string_index]
         
-        self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
+        self.agent_0_state = self.agent_0_transitions[self.agent_0_state].get(curr_symbol)
         if agent_id==1:
-            self.agent_1_observation = self.local_transitions[self.agent_1_observation].get(curr_symbol)
+            self.agent_1_belief = self.bottom_transitions[self.agent_1_belief].get(curr_symbol)
             if communicate == 1:
                 reward-=self.COMMUNICATE_COST
                 self.communication_count+=1
-                self.agent_2_observation = self.local_transitions[self.agent_2_observation].get(curr_symbol)
+                self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
         elif agent_id==2:
-            self.agent_2_observation = self.local_transitions[self.agent_2_observation].get(curr_symbol)
+            self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
             if communicate == 1:
                 self.communication_count+=1
                 reward-=self.COMMUNICATE_COST
-                self.agent_1_observation = self.local_transitions[self.agent_1_observation].get(curr_symbol)
+                self.agent_1_belief = self.bottom_transitions[self.agent_1_belief].get(curr_symbol)
         else:
             raise ValueError("Invalid agent_id. Must be 1 or 2.")
                 
@@ -127,17 +127,17 @@ class ComplexEnv(gym.Env):
         
 
         while curr_symbol in ['x','y']:
-            if (self.agent_1_observation == 4 or self.agent_2_observation == 4) and self.global_state == 4 and self.render_mode == "simulation":
+            if (self.agent_1_belief == 4 or self.agent_2_belief == 4) and self.agent_0_state == 4 and self.render_mode == "simulation":
                 self.simulate(True)
                 if  curr_symbol == 'y':
-                    self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
-                    self.agent_1_observation = self.local_transitions[self.agent_1_observation].get(curr_symbol)
-                    self.agent_2_observation = self.local_transitions[self.agent_2_observation].get(curr_symbol)
+                    self.agent_0_state = self.agent_0_transitions[self.agent_0_state].get(curr_symbol)
+                    self.agent_1_belief = self.bottom_transitions[self.agent_1_belief].get(curr_symbol)
+                    self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
                     self.simulate(False)
             else:
-                self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
-                self.agent_1_observation = self.local_transitions[self.agent_1_observation].get(curr_symbol)
-                self.agent_2_observation = self.local_transitions[self.agent_2_observation].get(curr_symbol)
+                self.agent_0_state = self.agent_0_transitions[self.agent_0_state].get(curr_symbol)
+                self.agent_1_belief = self.bottom_transitions[self.agent_1_belief].get(curr_symbol)
+                self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
                 if self.render_mode == 'human':
                     self.render()
                 elif self.render_mode == "simulation":
@@ -146,22 +146,22 @@ class ComplexEnv(gym.Env):
             curr_symbol=self.string[self.string_index]
         
         # Penalty Assignment
-        if self.global_state != 5 and ( self.agent_1_observation in [-1,5] and self.agent_2_observation in [-1,5]):
+        if self.agent_0_state != 5 and ( self.agent_1_belief in [-1,5] and self.agent_2_belief in [-1,5]): 
             reward -= 100
             terminated = True
-        elif self.global_state == 5 and not(self.agent_1_observation == 5 or self.agent_2_observation == 5):
+        elif self.agent_0_state == 5 and not(self.agent_1_belief == 5 or self.agent_2_belief == 5):
             reward -= 100
             terminated = True
         
-        elif self.string[self.string_index]== "$" and self.global_state == 5 and (self.agent_1_observation == 5 or self.agent_2_observation == 5):
+        elif self.string[self.string_index]== "$" and self.agent_0_state == 5 and (self.agent_1_belief == 5 or self.agent_2_belief == 5):
             terminated = True
             reward += 50
         
-        elif self.string[self.string_index]=="$" and self.global_state == 4:
+        elif self.string[self.string_index]=="$" and self.agent_0_state == 4:
             # condition for simulation where agent successfully disable x at state 4
             truncated = True
         
-        config = (self.global_state, self.agent_1_observation, self.agent_2_observation)
+        config = (self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
         
         info={"input_alphabet":self.string[self.string_index]}
         
@@ -169,20 +169,20 @@ class ComplexEnv(gym.Env):
     
     def render(self):
         print(f"Current symbol: '{self.string[self.string_index]}'")
-        print(f"Config: <{self.global_state}, {self.agent_1_observation}, {self.agent_2_observation}>")
+        print(f"Config: <{self.agent_0_state}, {self.agent_1_belief}, {self.agent_2_belief}>")
     
     def simulate(self, disabled):
         a = [" ", " ", " ", " ", " "," "]
 
-        a[self.global_state] = "#"
+        a[self.agent_0_state] = "#"
 
         block = "X" if disabled else "-"
 
-        print(f"Config: <{self.global_state}, {self.agent_1_observation}, {self.agent_2_observation}>, Current symbol: '{self.string[self.string_index]}', # comm: {self.communication_count}")
+        print(f"Config: <{self.agent_0_state}, {self.agent_1_belief}, {self.agent_2_belief}>, Current symbol: '{self.string[self.string_index]}', # comm: {self.communication_count}")
         if disabled:
-            if self.agent_1_observation == 4:
+            if self.agent_1_belief == 4:
                 print("Agent 1 disabled x")
-            elif self.agent_2_observation == 4:
+            elif self.agent_2_belief == 4:
                 print("Agent 2 disabled x")
                 
         

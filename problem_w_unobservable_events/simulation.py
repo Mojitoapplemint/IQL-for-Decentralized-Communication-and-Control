@@ -1,7 +1,7 @@
 import numpy as np
 import gymnasium as gym
 import pandas as pd
-import problem_w_unobservable_events.uo_problem_env as uo_problem_env
+import uo_problem_env
 ROW_NUMS_1={
     (1, 'a'):0,
     (2, 'a'):1,
@@ -171,7 +171,7 @@ ROW_NUMS_2={
 
     
 
-env = gym.make('EvenMoreComplexEnv-v0', render_mode="simulation")
+env = gym.make('UOEnv-v0', render_mode="simulation")
 
 
 config, info = env.reset()
@@ -184,8 +184,8 @@ _, agent_1_observation, agent_2_observation = config
 terminated = False
 truncated = False
 
-q_1 = pd.read_csv("./even_more_complex_problem/demo_q1_table.csv")
-q_2 = pd.read_csv("./even_more_complex_problem/demo_q2_table.csv")
+q_1 = pd.read_csv("./problem_w_unobservable_events/demo_q1_table.csv")
+q_2 = pd.read_csv("./problem_w_unobservable_events/demo_q2_table.csv")
 q_1 = q_1.drop(q_1.columns[[0]], axis=1).to_numpy()
 q_2 = q_2.drop(q_2.columns[[0]], axis=1).to_numpy()
 

@@ -2,10 +2,10 @@ import numpy as np
 import gymnasium as gym
 import pandas as pd
 import random
-import cyclic_problem.cyclic_problem_env as cyclic_problem_env
+import cyclic_problem_env
 
-q_1 = pd.read_csv("./complex_problem/demo_q1_table.csv")
-q_2 = pd.read_csv("./complex_problem/demo_q2_table.csv")
+q_1 = pd.read_csv("./cyclic_problem/demo_q1_table.csv")
+q_2 = pd.read_csv("./cyclic_problem/demo_q2_table.csv")
 q_1 = q_1.drop(q_1.columns[[0]], axis=1).to_numpy()
 q_2 = q_2.drop(q_2.columns[[0]], axis=1).to_numpy()
 
@@ -26,7 +26,7 @@ ROW_NUMS = {
     (True, -1):13,
 }
 
-env = gym.make("ComplexEnv-v0", render_mode = "simulation", string_mode="simulation")
+env = gym.make("CylicEnv-v0", render_mode = "simulation", string_mode="simulation")
 
 terminated = False
 truncated = False
