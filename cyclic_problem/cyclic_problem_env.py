@@ -175,12 +175,13 @@ class CylicEnv(gym.Env):
         else:
             raise ValueError("Invalid agent_id. Must be 1 or 2.")
         
-        self.string_index += 1
-        curr_symbol=self.string[self.string_index]
-        
         if self.render_mode == 'human':
             print(f"\nAgent {agent_id} {'communicated' if communicate==1 else 'did not communicate'} on '{curr_symbol}'")
             self.simulate()
+            
+        self.string_index += 1
+        curr_symbol=self.string[self.string_index]
+        
         
         if self.agent_1_belief == -1 and self.agent_2_belief == -1:
             terminated=True

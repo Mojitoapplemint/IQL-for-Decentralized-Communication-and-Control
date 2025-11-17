@@ -27,7 +27,7 @@ ROW_NUMS = {
 }
 
 fail_count = 0
-test_count = 1000
+test_count = 10000
 
 string_mode = "simulation" # options: "simulation", "half", "full"
 
