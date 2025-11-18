@@ -134,12 +134,19 @@ class CylicEnv(gym.Env):
             curr_symbol=self.string[self.string_index]
         
         # Penalty Assignment
-        if self.agent_1_belief == -1 and self.agent_2_belief == -1:
-            terminated = True
-            reward -= 100
-        elif self.global_state == 5 and not(self.agent_1_belief == 5 or self.agent_2_belief == 5):
+        if self.global_state == 5 and not(self.agent_1_belief == 5 or self.agent_2_belief == 5):
+            # Penalized configuration Condition 1
             reward -= 100
             terminated = True
+        elif self.global_state != 5 and self.agent_1_belief == 5 and self.agent_2_belief == 5:
+            # Penalized configuration Condition 2
+            reward -= 100
+            terminated = True
+        
+        elif self.agent_1_belief == -1 and self.agent_2_belief == -1:
+            
+            terminated = True
+            reward -= 100
         
         elif self.string[self.string_index]== "$" and self.global_state == 5 and (self.agent_1_belief == 5 or self.agent_2_belief == 5):
             terminated = True
