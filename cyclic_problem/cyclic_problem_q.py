@@ -53,8 +53,8 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
         terminated = False
         truncated = False
         
-        agent_1_communicate = -1
-        agent_2_communicate = -1
+        agent_1_communicate = 0
+        agent_2_communicate = 0
         
         reward_1 = 0
         reward_2 = 0
@@ -114,7 +114,9 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
         # Final Q-value updates
         q_1[agent_1_prev_row_num][agent_1_communicate] += alpha * (reward_1 + gamma * 0 - q_1[agent_1_prev_row_num][agent_1_communicate])
         q_2[agent_2_prev_row_num][agent_2_communicate] += alpha * (reward_2 + gamma * 0 - q_2[agent_2_prev_row_num][agent_2_communicate])
-    
+
+        # print(curr_symbol)
+        
     return q_1, q_2
 
 q_training_env = gym.make('CylicEnv-v0', render_mode=None, string_mode="training")

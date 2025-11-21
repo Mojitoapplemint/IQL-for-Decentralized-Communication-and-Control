@@ -199,7 +199,8 @@ ROW_NUMS_2={
 fail_rate_count={}
 over_comm_rate_count={}
 success_dict = {}
-session_count = 100
+result_dict = {}
+session_count = 1000
 
 for i in range(session_count):
     print(str(100*i/session_count)+"%","done" , end="\r")
@@ -210,7 +211,7 @@ for i in range(session_count):
 
     fail_count = 0
     over_comm_count = 0
-    test_count = 100
+    test_count = 1000
     for _ in range (test_count):
 
         terminated = False
@@ -268,6 +269,13 @@ for i in range(session_count):
             fail_count += 1
         if global_state == agent_1_belief and global_state == agent_2_belief:
             over_comm_count += 1
+            
+        config = (global_state, agent_1_belief, agent_2_belief)
+            
+        if result_dict.get(config) is None:
+            result_dict[config] = 1
+        else:
+            result_dict[config] = result_dict.get(config) + 1
 
     fail_rate = np.round(fail_count/test_count*100, 2)
     if fail_rate not in fail_rate_count:
@@ -280,13 +288,27 @@ for i in range(session_count):
         over_comm_rate_count[over_comm_rate] = 1
     else:
         over_comm_rate_count[over_comm_rate] += 1
+    
+    if fail_rate==0:
+        q_1_comm_protocol = [0 for _ in range (40)]
+        q_2_comm_protocol = [0 for _ in range (120)]
+        for i in range(len(q_1_comm_protocol)):
+            q_1_comm_protocol[i] = np.argmax(q_1[i])
+        for i in range(len(q_2_comm_protocol)):
+            q_2_comm_protocol[i] = np.argmax(q_2[i])
         
-        # config = (global_state, agent_1_belief, agent_2_belief)
-            
-        # if result_dict.get(config) is None:
-        #     result_dict[config] = 1
-        # else:
-        #     result_dict[config] = result_dict.get(config) + 1
+        protocol_key = (tuple(q_1_comm_protocol), tuple(q_2_comm_protocol))
+        if protocol_key in success_dict:
+            success_dict[protocol_key] += 1
+        else:
+            success_dict[protocol_key] = 1
+    
+
+
+# print result dictionary
+for key in result_dict:
+    print(f"<{key[0]}, {key[1]}, {key[2]}> => Count: {result_dict[key]}")
+
 
 # Save results to CSV
 fail_rate_df = pd.DataFrame(list(fail_rate_count.items()), columns=['Fail Rate (%)', 'Count'])
@@ -294,3 +316,7 @@ fail_rate_df.to_csv("./problem_w_unobservable_events/simulation_2_results.csv", 
 
 over_comm_rate_df = pd.DataFrame(list(over_comm_rate_count.items()), columns=['Over-Communication Rate (%)', 'Count'])
 over_comm_rate_df.to_csv("./problem_w_unobservable_events/simulation_2_over_communication_results.csv", index=False)
+
+success_protocols_df = pd.DataFrame(list(success_dict.items()), columns=['Communication Protocols', 'Success Count'])
+success_protocols_df.to_csv("./problem_w_unobservable_events/simulation_2_successful_protocols.csv", index=False)
+

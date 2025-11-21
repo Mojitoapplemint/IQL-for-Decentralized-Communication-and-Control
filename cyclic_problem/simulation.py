@@ -36,7 +36,7 @@ simulation_result = False
 
 config, info = env.reset()
 
-global_state, agent_1_observation, agent_2_observation = config
+global_state, agent_1_belief, agent_2_belief = config
 
 curr_symbol=info['input_alphabet']
 
@@ -49,7 +49,7 @@ while not(terminated):
     if curr_symbol == "a":
         
         agent_id=1
-        agent_1_row_num = ROW_NUMS[(agent_2_in_dead_state, agent_1_observation)]
+        agent_1_row_num = ROW_NUMS[(agent_2_in_dead_state, agent_1_belief)]
         
         if agent_2_in_dead_state:
             agent_1_communicate = 0
@@ -58,15 +58,15 @@ while not(terminated):
         
         config, reward, terminated, simulation_result, info = env.step((agent_id, agent_1_communicate))
         
-        global_state, agent_1_observation, agent_2_observation = config
+        global_state, agent_1_belief, agent_2_belief = config
         
-        agent_2_in_dead_state = agent_2_observation == -1
+        agent_2_in_dead_state = agent_2_belief == -1
         
         curr_symbol=info['input_alphabet']
                     
     if curr_symbol == "b":
         agent_id=2
-        agent_2_row_num = ROW_NUMS[(agent_1_in_dead_state, agent_2_observation)]
+        agent_2_row_num = ROW_NUMS[(agent_1_in_dead_state, agent_2_belief)]
         
         if agent_1_in_dead_state:
             agent_2_communicate = 0
@@ -74,10 +74,9 @@ while not(terminated):
             agent_2_communicate = np.argmax(q_2[agent_2_row_num])
         config, reward, terminated, simulation_result, info = env.step((agent_id, agent_2_communicate))
         
-        global_state, agent_1_observation, agent_2_observation = config
+        global_state, agent_1_belief, agent_2_belief = config
         
-        agent_1_in_dead_state = agent_1_observation == -1
+        agent_1_in_dead_state = agent_1_belief == -1
         
         curr_symbol=info['input_alphabet']
 
-        

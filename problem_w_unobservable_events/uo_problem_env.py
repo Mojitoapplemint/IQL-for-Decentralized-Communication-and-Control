@@ -3,6 +3,7 @@ import numpy as np
 from IPython.display import clear_output
 import time
 from str_generator import StringGenerator
+import pandas as pd
 
 gym.register(
     id="UOEnv-v0",
@@ -105,7 +106,7 @@ class UOEnv(gym.Env):
         -1:{'a':-1, 'c':-1, 'x':-1, 'y':-1, 'z':-1, 's':-1, 't':-1, 'r':-1}
     }
     
-    metadata = {'render_modes': ['human'], 'string_modes': ['training', 'simulation']}
+    metadata = {'render_modes': ['human'], 'string_modes': ['training', 'simulation', 'stats']}
     
     def __init__(self, render_mode=None, string_mode="training", max_star=5):
         self.action_space = gym.spaces.Discrete(2)  # Actions: 0: communicate, 1:don't communicate
@@ -117,6 +118,11 @@ class UOEnv(gym.Env):
         self.string_mode = string_mode
         
         self.string_generator = StringGenerator(max_star=max_star)
+        
+        if self.string_mode == 'stats':
+            df = pd.read_csv("problem_w_unobservable_events/strings.csv")
+            self.string_list = df["strings"].to_list()
+            self.index = 0
         
     def reset(self, seed=None, options=None):
         # Todo: Generate string
@@ -147,7 +153,10 @@ class UOEnv(gym.Env):
             if self.render_mode == 'human':
                 print(f"\nNew Episode: {self.string}")
                 self.render()
-        
+        elif self.string_mode == "stats":
+            self.string=self.string_list[self.index]
+            self.index = (self.index + 1) % len(self.string_list)
+            self.string += "$"
             
         
         config = (self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
@@ -195,29 +204,31 @@ class UOEnv(gym.Env):
         if self.agent_1_belief == -1 and self.agent_2_belief == -1:
             reward -=100
             terminated = True
-            
-        if self.agent_0_state == 11 and not(self.agent_1_belief == 11 or self.agent_2_belief == 11):
+        elif self.agent_0_state == 11 and not(self.agent_1_belief == 11 or self.agent_2_belief == 11):
             # Penalized configuration condition 1-1
-            reward -=100
+            reward -=200
             terminated = True
-        if self.agent_0_state == 9 and not(self.agent_1_belief == 9 or self.agent_2_belief == 9):
+        elif self.agent_0_state == 9 and not(self.agent_1_belief == 9 or self.agent_2_belief == 9):
             # Penalized configuration condition 1-2
-            reward -=100
+            reward -=200
             terminated = True
-        if self.agent_0_state != 11 and self.agent_1_belief == 11 and self.agent_2_belief == 11:
+        elif self.agent_0_state != 11 and self.agent_1_belief == 11 and self.agent_2_belief == 11:
             # Penalized configuration condition 2-1
-            reward -=100
+            reward -=200
             terminated = True
-        if self.agent_0_state != 9 and self.agent_1_belief == 9 and self.agent_2_belief == 9:
+        elif self.agent_0_state != 9 and self.agent_1_belief == 9 and self.agent_2_belief == 9:
             # Penalized configuration condition 2-2
-            reward -=100
+            reward -=200
             terminated = True
-        
-        
+        elif self.agent_0_state == 11 and self.agent_1_belief ==11 and self.agent_2_belief==11:
+            terminated = True
+            reward += 100
         elif self.agent_0_state == 11 and (self.agent_1_belief ==11 or self.agent_2_belief==11):
             terminated = True
             reward += 200
-        
+        elif self.agent_0_state == 9 and self.agent_1_belief ==9 and self.agent_2_belief==9:
+            terminated = True
+            reward += 100
         elif self.agent_0_state == 9 and (self.agent_1_belief ==9 or self.agent_2_belief==9):
             terminated = True
             reward += 200

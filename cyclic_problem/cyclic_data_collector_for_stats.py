@@ -30,14 +30,16 @@ ROW_NUMS = {
 fail_rate_count={}
 
 success_dict = {}
-
-session_count = 10000
+fail_dict = {}
+over_comm_rate_count={}
+session_count = 100
 
 for i in range(session_count):
     print(str(100*i/session_count)+"%","done" , end="\r")
     
     fail_count = 0
-    test_count = 1000
+    test_count = 100
+    over_comm_count=0
 
     string_mode = "training"
 
@@ -58,7 +60,7 @@ for i in range(session_count):
 
         config, info = env.reset()
 
-        global_state, agent_1_observation, agent_2_observation = config
+        global_state, agent_1_belief, agent_2_belief = config
 
         curr_symbol=info['input_alphabet']
         
@@ -71,7 +73,7 @@ for i in range(session_count):
             if curr_symbol == "a":
                 
                 agent_id=1
-                agent_1_row_num = ROW_NUMS[(agent_2_in_dead_state, agent_1_observation)]
+                agent_1_row_num = ROW_NUMS[(agent_2_in_dead_state, agent_1_belief)]
                 
                 if agent_2_in_dead_state:
                     agent_1_communicate = 0
@@ -80,15 +82,15 @@ for i in range(session_count):
                 
                 config, reward, terminated, simulation_result, info = env.step((agent_id, agent_1_communicate))
                 
-                global_state, agent_1_observation, agent_2_observation = config
+                global_state, agent_1_belief, agent_2_belief = config
                 
-                agent_2_in_dead_state = agent_2_observation == -1
+                agent_2_in_dead_state = agent_2_belief == -1
                 
                 curr_symbol=info['input_alphabet']
                             
             if curr_symbol == "b":
                 agent_id=2
-                agent_2_row_num = ROW_NUMS[(agent_1_in_dead_state, agent_2_observation)]
+                agent_2_row_num = ROW_NUMS[(agent_1_in_dead_state, agent_2_belief)]
                 
                 if agent_1_in_dead_state:
                     agent_2_communicate = 0
@@ -96,45 +98,69 @@ for i in range(session_count):
                     agent_2_communicate = np.argmax(q_2[agent_2_row_num])
                 config, reward, terminated, simulation_result, info = env.step((agent_id, agent_2_communicate))
                 
-                global_state, agent_1_observation, agent_2_observation = config
+                global_state, agent_1_belief, agent_2_belief = config
                 
-                agent_1_in_dead_state = agent_1_observation == -1
+                agent_1_in_dead_state = agent_1_belief == -1
                 
                 curr_symbol=info['input_alphabet']
         
         if not simulation_result:
             fail_count += 1
+        if global_state == agent_1_belief and global_state == agent_2_belief:
+            over_comm_count += 1
         
     fail_rate = np.round(fail_count/test_count*100, 2)
     
+    q_1_comm_protocol = [0 for _ in range (7)]
+    q_2_comm_protocol = [0 for _ in range (7)]
+    for i in range(7):
+        q_1_comm_protocol[i] = np.argmax(q_1[i])
+        q_2_comm_protocol[i] = np.argmax(q_2[i])
+    
+    protocol_key = (tuple(q_1_comm_protocol), tuple(q_2_comm_protocol))
     if fail_rate==0:
-        q_1_comm_protocol = [0 for _ in range (13)]
-        q_2_comm_protocol = [0 for _ in range (13)]
-        for i in range(13):
-            q_1_comm_protocol[i] = np.argmax(q_1[i])
-            q_2_comm_protocol[i] = np.argmax(q_2[i])
-        
-        protocol_key = (tuple(q_1_comm_protocol), tuple(q_2_comm_protocol))
         if protocol_key in success_dict:
             success_dict[protocol_key] += 1
         else:
             success_dict[protocol_key] = 1
+    else:
+        if protocol_key in fail_dict:
+            fail_dict[protocol_key] += 1
+        else:
+            fail_dict[protocol_key] = 1
     
     if fail_rate in fail_rate_count:
         fail_rate_count[fail_rate] += 1
     else:
         fail_rate_count[fail_rate] = 1
+        
+    over_comm_rate = np.round(over_comm_count/test_count*100, 2)
+    if over_comm_rate not in over_comm_rate_count:
+        over_comm_rate_count[over_comm_rate] = 1
+    else:
+        over_comm_rate_count[over_comm_rate] += 1
 
 fail_rate_count_df = pd.DataFrame(list(fail_rate_count.items()), columns=['Fail Rate (%)', 'Count'])
 fail_rate_count_df = fail_rate_count_df.sort_values(by=['Fail Rate (%)'])
-fail_rate_count_df.to_csv("./cyclic_problem/simulation_2_results.csv", index=False)
+fail_rate_count_df.to_csv("./cyclic_problem/simulation_2_results_100.csv", index=False)
+
+over_comm_rate_count_df = pd.DataFrame(list(over_comm_rate_count.items()), columns=['Over Communication Rate (%)', 'Count'])
+over_comm_rate_count_df = over_comm_rate_count_df.sort_values(by=['Over Communication Rate (%)'])
+over_comm_rate_count_df.to_csv("./cyclic_problem/simulation_2_over_communication_results_100.csv", index=False)
+
+
+success_dict_df = pd.DataFrame(list(success_dict.items()), columns=['Communication Protocols', 'Success Count'])
+success_dict_df.to_csv("./cyclic_problem/simulation_2_successful_protocols_100.csv", index=False)
+
+fail_dict_df = pd.DataFrame(list(fail_dict.items()), columns=['Communication Protocols', 'Fail Count'])
+fail_dict_df.to_csv("./cyclic_problem/simulation_2_failed_protocols_100.csv", index=False)
 
 print("Fail Rate Count over", session_count, "sessions:")
 print(fail_rate_count_df)
 
-print(success_dict)
+print("\nOver Communication Rate Count over", session_count, "sessions:")
+print(over_comm_rate_count_df)
 
-success_dict_df = pd.DataFrame(list(success_dict.items()), columns=['Communication Protocols', 'Success Count'])
-success_dict_df.to_csv("./cyclic_problem/simulation_2_successful_protocols.csv", index=False)
+print(success_dict)
 
 # Go to stats.py to analyze the results

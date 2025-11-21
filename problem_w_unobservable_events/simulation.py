@@ -2,7 +2,7 @@ import numpy as np
 import gymnasium as gym
 import pandas as pd
 import uo_problem_env
-ROW_NUMS_1={
+PHI_1={
     (1, 'a'):0,
     (2, 'a'):1,
     (3, 'a'):2,
@@ -45,7 +45,7 @@ ROW_NUMS_1={
     (-1,'c'):39,
 }
 
-ROW_NUMS_2={
+PHI_2={
     (1, 'x'):0,
     (2, 'x'):1,
     (3, 'x'):2,
@@ -178,7 +178,7 @@ config, info = env.reset()
 
 curr_symbol=info['input_alphabet']
 
-_, agent_1_observation, agent_2_observation = config
+_, agent_1_belief, agent_2_belief = config
 
 
 terminated = False
@@ -196,7 +196,7 @@ while not (terminated or truncated):
     if curr_symbol in ['a', 'c']:
         
         agent_id=1
-        agent_1_row_num = len(ROW_NUMS_1)+ROW_NUMS_1[(agent_1_observation, curr_symbol)] if agent_2_in_dead_state else ROW_NUMS_1[(agent_1_observation, curr_symbol)]
+        agent_1_row_num = len(PHI_1)+PHI_1[(agent_1_belief, curr_symbol)] if agent_2_in_dead_state else PHI_1[(agent_1_belief, curr_symbol)]
 
         
         if agent_2_in_dead_state:
@@ -206,16 +206,16 @@ while not (terminated or truncated):
             
         config, _, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
         
-        _, agent_1_observation, agent_2_observation = config
+        _, agent_1_belief, agent_2_belief = config
         
-        agent_2_in_dead_state = agent_2_observation == -1
+        agent_2_in_dead_state = agent_2_belief == -1
 
         
         curr_symbol=info['input_alphabet']
                     
     if curr_symbol in ['x', 'y', 'z', 's', 't', 'r']:
         agent_id=2
-        agent_2_row_num = len(ROW_NUMS_2)+ROW_NUMS_2[(agent_2_observation, curr_symbol)] if agent_1_in_dead_state else ROW_NUMS_2[(agent_2_observation, curr_symbol)]
+        agent_2_row_num = len(PHI_2)+PHI_2[(agent_2_belief, curr_symbol)] if agent_1_in_dead_state else PHI_2[(agent_2_belief, curr_symbol)]
 
         if agent_1_in_dead_state:
             agent_2_communicate = 0
@@ -224,8 +224,8 @@ while not (terminated or truncated):
 
         config, _, terminated, _, info = env.step((agent_id, agent_2_communicate))
         
-        _, agent_1_observation, agent_2_observation = config
+        _, agent_1_belief, agent_2_belief = config
         
-        agent_1_in_dead_state = agent_1_observation == -1
+        agent_1_in_dead_state = agent_1_belief == -1
         
         curr_symbol=info['input_alphabet']

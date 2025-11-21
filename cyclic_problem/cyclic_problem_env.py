@@ -3,6 +3,7 @@ import numpy as np
 from str_generator import RegexStringGenerator
 from IPython.display import clear_output
 import time
+import pandas as pd
 
 gym.register(
     id="CylicEnv-v0",
@@ -11,7 +12,7 @@ gym.register(
 
 class CylicEnv(gym.Env):
 
-    COMMUNICATE_COST = 10
+    COMMUNICATE_COST = 15
     
     # symbol replacement
     #   a1 -> a  ,  e1 -> x
@@ -34,7 +35,7 @@ class CylicEnv(gym.Env):
         -1:{'a':-1, 'b':-1, 'x':-1, 'y':-1},
     }
     
-    metadata = {'render_modes': ['human'], 'string_modes': ['training', 'simulation']}
+    metadata = {'render_modes': ['human'], 'string_modes': ['training', 'simulation', 'stats']}
     
     def __init__(self, string_mode="full", render_mode=None, max_star=5):
         self.string_generator = RegexStringGenerator(max_star=max_star)
@@ -47,11 +48,20 @@ class CylicEnv(gym.Env):
         assert render_mode is None or render_mode in self.metadata['render_modes']
         self.render_mode = render_mode
         
+        if self.string_mode == 'stats':
+            df = pd.read_csv("cyclic_problem/strings.csv")
+            self.string_list = df["strings"].to_list()
+            self.index = 0
+        
     def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
         if self.string_mode == "training":
             self.string=self.string_generator.generate_training_str()+"$"
         elif self.string_mode == "simulation":
             self.string=self.string_generator.generate_simulation_str()+"$"
+        elif self.string_mode == "stats":
+            self.string=self.string_list[self.index]+"$"
+            self.index = (self.index + 1) % len(self.string_list)
         self.string_index=0
         self.communication_count=0
         self.global_state = 0
@@ -134,19 +144,23 @@ class CylicEnv(gym.Env):
         # Penalty Assignment
         if self.global_state == 5 and not(self.agent_1_belief == 5 or self.agent_2_belief == 5):
             # Penalized configuration Condition 1
-            reward -= 100
+            reward -= 200
             terminated = True
-        elif self.global_state != 5 and self.agent_1_belief == 5 and self.agent_2_belief == 5:
+        elif self.global_state != 5 and self.agent_1_belief in [5,-1] and self.agent_2_belief in [5, -1]:
             # Penalized configuration Condition 2
-            reward -= 100
+            reward -=  200
             terminated = True
         
         if self.agent_1_belief == -1 and self.agent_2_belief == -1:
             # terminate current episode as soon as both agents are in dead state; shortening training time
             terminated = True
-            reward -= 100
+            reward -= 200
         
-        if self.string[self.string_index]== "$" and self.global_state == 5 and (self.agent_1_belief == 5 or self.agent_2_belief == 5):
+        if self.global_state == 5 and self.agent_1_belief == 5 and self.agent_2_belief == 5:
+            # Successful termination Condition
+            terminated = True
+            reward += 100
+        elif self.global_state == 5 and (self.agent_1_belief == 5 or self.agent_2_belief == 5):
             terminated = True
             reward += 200
         

@@ -1,10 +1,13 @@
+import matplotlib.pyplot as plt
 import numpy as np
-import gymnasium as gym
 import pandas as pd
-import random
+import gymnasium as gym
 import sys
 sys.path.insert(0, './problem_w_unobservable_events')
-import  uo_problem_env
+import uo_problem_env
+from str_generator import StringGenerator
+
+
 
 PHI_1={
     (1, 'a'):0,
@@ -172,60 +175,86 @@ PHI_2={
     (-1,'r'):119,
 }
 
-def get_action(q_table, opponent_in_dead_state, row_num, epsilon):
-    if opponent_in_dead_state:
-        return 0
-    if random.uniform(0, 1) < epsilon:
-        return np.argmin(q_table[row_num]) # Explore: choose the action that is not best
-    else:
-        return  np.argmax(q_table[row_num])  # Exploit: best action from Q-table
-        
 
-def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_process=False):
-    q_1 = np.zeros((2*len(PHI_1), env.action_space.n))
-    q_2 = np.zeros((2*len(PHI_2), env.action_space.n))  
+regexgen = StringGenerator(max_star=5)
+
+string_list = []
+
+# for i in range(1000):
+#     string_list.append(regexgen.generate_training_str())
+
+# df = pd.DataFrame(string_list, columns=["strings"])
+# df.to_csv("problem_w_unobservable_events/strings.csv", index=False)
     
-    for epoch in range(epochs):
-        
-        epsilon = max(0.01, epsilon * (1 - epoch / epochs))  # Decaying epsilon
-        
-        if (print_process and epoch%100==0):
-                print(str(100*epoch/epochs)+"%","done" , end="\r")
-            
+
+df = pd.read_csv("problem_w_unobservable_events/strings.csv")
+string_list = df["strings"].to_list()
+
+
+successful_protocols = pd.read_csv("problem_w_unobservable_events/simulation_2_successful_protocols.csv")
+
+print(len(successful_protocols["Communication Protocols"].unique()))
+
+success_return_values_x = []
+success_return_values_y = []
+
+return_values = [0,0]
+
+for index, row in successful_protocols.iterrows():
+    protocol = row["Communication Protocols"].replace("(","").replace(")","").split(", ")
+    protocol = [int(x) for x in protocol]
+    
+    q_1 = protocol[:40] + [0 for _ in range(40)]
+    q_2 = protocol[40:] + [0 for _ in range(120)]
+    
+    return_value = [0,0]
+    
+    env = gym.make("UOEnv-v0", render_mode = None, string_mode="stats")
+    
+    for i in range (1000):
+        terminated = False
+        simulation_result = False
+
+
         config, info = env.reset()
-        
+
+        global_state, agent_1_belief, agent_2_belief = config
+
         curr_symbol=info['input_alphabet']
-        
-        _, agent_1_belief, agent_2_belief = config
-        
+
         agent_1_prev_row_num = -1
         agent_2_prev_row_num = -1
-        
-        terminated = False
-        truncated = False
-        
-        agent_1_communicate = 0
-        agent_2_communicate = 0
-        
-        reward_1 = 0
-        reward_2 = 0
-        
+
         agent_1_in_dead_state = False
         agent_2_in_dead_state = False
+
         
-        while not (terminated or truncated):
+        reward_1=0
+        reward_2=0
+        
+        t_1=1
+        t_2=1
+        while not (terminated):
             if curr_symbol in ['a', 'c']:
                 
+                
                 agent_id=1
-                agent_1_row_num = len(PHI_1)+PHI_1[(agent_1_belief, curr_symbol)] if agent_2_in_dead_state else PHI_1[(agent_1_belief, curr_symbol)]
 
                 
                 if agent_1_prev_row_num != -1 :
-                    # Q-value update for agent 1
-                    q_1[agent_1_prev_row_num][agent_1_communicate] += alpha * (reward_1 + gamma * np.max(q_1[agent_1_row_num]) - q_1[agent_1_prev_row_num][agent_1_communicate])
+                    # return_value[0] += (0.5**t_1)*reward_1
+                    return_value[0] += reward_1
+                    t_1+=1
                     reward_1 = 0
                 
-                agent_1_communicate = get_action(q_1, agent_2_in_dead_state, agent_1_row_num, epsilon)
+
+                if agent_2_in_dead_state:
+                    agent_1_communicate = 0
+                else:
+                    agent_1_row_num = len(PHI_1)+PHI_1[(agent_1_belief, curr_symbol)] if agent_2_in_dead_state else PHI_1[(agent_1_belief, curr_symbol)]
+                    agent_1_communicate = q_1[agent_1_row_num]
+                    
+                
                 config, reward, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
                 
                 _, agent_1_belief, agent_2_belief = config
@@ -239,16 +268,20 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
                 agent_1_prev_row_num = agent_1_row_num
                             
             if curr_symbol in ['x', 'y', 'z', 's', 't', 'r']:
-                agent_id=2
-                agent_2_row_num = len(PHI_2)+PHI_2[(agent_2_belief, curr_symbol)] if agent_1_in_dead_state else PHI_2[(agent_2_belief, curr_symbol)]
 
+                agent_id=2
                 
                 if agent_2_prev_row_num != -1 :
-                    # Q-value update for agent 2
-                    q_2[agent_2_prev_row_num][agent_2_communicate] += alpha * (reward_2 + gamma * np.max(q_2[agent_2_row_num]) - q_2[agent_2_prev_row_num][agent_2_communicate])
+                    # return_value[1] += (0.5**t_2)*reward_2
+                    return_value[1] += reward_2
+                    t_2+=1
                     reward_2 = 0
                 
-                agent_2_communicate = get_action(q_2, agent_1_in_dead_state, agent_2_row_num, epsilon)
+                if agent_1_in_dead_state:
+                    agent_2_communicate = 0
+                else:
+                    agent_2_row_num = len(PHI_2)+PHI_2[(agent_2_belief, curr_symbol)] if agent_1_in_dead_state else PHI_2[(agent_2_belief, curr_symbol)]
+                    agent_2_communicate = q_2[agent_2_row_num]
                 
                 config, reward, terminated, truncated, info = env.step((agent_id, agent_2_communicate))
                 
@@ -261,26 +294,27 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
                 curr_symbol=info['input_alphabet']
                 
                 agent_2_prev_row_num = agent_2_row_num
+
         
         reward_1 += reward
         reward_2 += reward
         
-        
-        # Final Q-value updates
-        q_1[agent_1_prev_row_num][agent_1_communicate] += alpha * (reward_1 + gamma * 0 - q_1[agent_1_prev_row_num][agent_1_communicate])
-        q_2[agent_2_prev_row_num][agent_2_communicate] += alpha * (reward_2 + gamma * 0 - q_2[agent_2_prev_row_num][agent_2_communicate])
-
-    return q_1, q_2
-
-q_training_env = gym.make('UOEnv-v0', render_mode=None, string_mode="training")
-
-q_1, q_2 = q_training(q_training_env, epochs=100000, alpha=0.01, gamma=0.5, epsilon=0.1)
-
-
-q_1_df = pd.DataFrame(q_1, columns=["do not communcate", "communicate"])
-q_2_df = pd.DataFrame(q_2, columns=["do not communcate", "communicate"])
-
-q_1_df.to_csv(f'problem_w_unobservable_events/demo_q1_table.csv')
-q_2_df.to_csv(f'problem_w_unobservable_events/demo_q2_table.csv')
-
-# Training done, go to simulation.py for simulation
+        return_value[0] += reward_1
+        return_value[1] += reward_2
+        # return_value[0] += (0.5**t_1)*reward_1
+        # return_value[1] += (0.5**t_2)*reward_2
+    
+    return_value[0] = np.round(return_value[0]/1000, 2)
+    return_value[1] = np.round(return_value[1]/1000, 2)
+    success_return_values_x.append(return_value[0])
+    success_return_values_y.append(return_value[1])
+    
+plt.figure(figsize=(10,6))
+plt.scatter(success_return_values_x, success_return_values_y, color='blue', label='Successful Protocols')
+plt.xlabel('Agent 1 Average Return')
+plt.ylabel('Agent 2 Average Return')
+plt.title('Return Values of Communication Protocols')
+plt.legend()
+plt.grid(True)
+plt.savefig("problem_w_unobservable_events/protocol_return_values_scatter_plot.png")
+plt.show()
