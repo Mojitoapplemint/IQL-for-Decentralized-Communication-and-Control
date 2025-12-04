@@ -201,6 +201,8 @@ joint_return_values = []
 return_values = [0,0]
 communicate_counts = []
 
+communication_dict={}
+
 for index, row in successful_protocols.iterrows():
     print(f"{index} / {len(successful_protocols)}", end="\r")
     protocol = row["Communication Protocols"].replace("(","").replace(")","").split(", ")
@@ -256,6 +258,7 @@ for index, row in successful_protocols.iterrows():
                     
                 if agent_1_communicate ==1:
                     communicate_count[0] += 1 
+
                 
                 config, reward, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
                 
@@ -285,8 +288,17 @@ for index, row in successful_protocols.iterrows():
                     agent_2_row_num = len(PHI_2)+PHI_2[(agent_2_belief, curr_symbol)] if agent_1_in_dead_state else PHI_2[(agent_2_belief, curr_symbol)]
                     agent_2_communicate = q_2[agent_2_row_num]
                 
+                if curr_symbol not in communication_dict:
+                    communication_dict[curr_symbol] = [0,0]
+                
+                
                 if agent_2_communicate ==1:
                     communicate_count[1] += 1
+                    communication_dict[curr_symbol][1] += 1
+                else:
+                    communication_dict[curr_symbol][0] += 1
+
+                
                 
                 config, reward, terminated, truncated, info = env.step((agent_id, agent_2_communicate))
                 
@@ -331,8 +343,11 @@ plt.ylabel('Agent 2 Average Return')
 plt.title('Return Values of Communication Protocols')
 plt.legend()
 plt.grid(True)
+plt.savefig('problem_w_unobservable_events/stats_successful_protocols_returns.png')
 plt.show()
 
 communicate_counts = pd.DataFrame(communicate_counts, columns=['Agent 1 Communicate Count', 'Agent 2 Communicate Count'])
 
 print(communicate_counts.value_counts())
+
+print(communication_dict)
