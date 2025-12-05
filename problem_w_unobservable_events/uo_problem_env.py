@@ -125,7 +125,6 @@ class UOEnv(gym.Env):
             self.index = 0
         
     def reset(self, seed=None, options=None):
-        # Todo: Generate string
         
         self.string_index = 0
         
