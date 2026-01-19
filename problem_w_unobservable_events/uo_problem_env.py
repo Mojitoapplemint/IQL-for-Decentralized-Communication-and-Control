@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 from IPython.display import clear_output
 import time
-from str_generator import StringGenerator
+from word_generator import TrainingWordGenerator
 import pandas as pd
 
 gym.register(
@@ -12,6 +12,9 @@ gym.register(
 
 class UOEnv(gym.Env):
     COMMUNICATE_COST = 10
+    PENALTY_11 = 100
+    PENALTY_9 = 100
+    
     
     # symbol replacement
     #    a1 -> a,   c1 -> c
@@ -117,11 +120,11 @@ class UOEnv(gym.Env):
         self.render_mode = render_mode
         self.string_mode = string_mode
         
-        self.string_generator = StringGenerator(max_star=max_star)
+        self.string_generator = TrainingWordGenerator(max_star=max_star)
         
         if self.string_mode == 'stats':
-            df = pd.read_csv("problem_w_unobservable_events/strings.csv")
-            self.string_list = df["strings"].to_list()
+            df = pd.read_csv("problem_w_unobservable_events/simulation_words.csv")
+            self.string_list = df["simulation_words"].to_list()
             self.index = 0
         
     def reset(self, seed=None, options=None):
@@ -137,7 +140,8 @@ class UOEnv(gym.Env):
         self.communication_count = 0
         
         if self.string_mode == "simulation":
-            self.string=self.string_generator.generate_simulation_str()+"$"
+            # self.string="axac$"
+            self.string=self.string_generator.generate_simulation_word()+"$"
             if self.render_mode == 'human':
                 print(f"\nSimulation String: {self.string}")
                 self.simulate()
@@ -147,7 +151,7 @@ class UOEnv(gym.Env):
             if self.render_mode == 'human':
                 self.simulate()
         elif self.string_mode == "training":
-            self.string=self.string_generator.generate_training_str()+"$" 
+            self.string=self.string_generator.generate_training_word()+"$" 
             # self.string = "aaazraaazraaazraaazraaxc$"       
             if self.render_mode == 'human':
                 print(f"\nNew Episode: {self.string}")
@@ -156,6 +160,9 @@ class UOEnv(gym.Env):
             self.string=self.string_list[self.index]
             self.index = (self.index + 1) % len(self.string_list)
             self.string += "$"
+            if self.string[self.string_index] == 'd':
+                self.agent_0_state = self.simulation_transitions[self.agent_0_state].get('d')
+                self.string_index += 1
             
         
         config = (self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
@@ -165,7 +172,7 @@ class UOEnv(gym.Env):
         return np.array(config, dtype=np.int32), info
     
     def step(self, action):
-        if self.string_mode == "simulation":
+        if self.string_mode == "simulation" or self.string_mode == "stats":
             return self.simulation_step(action)
         
         reward = 0
@@ -201,14 +208,14 @@ class UOEnv(gym.Env):
         #     reward -= 15
 
 
-        # if self.agent_0_state == 11 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
+        if self.agent_0_state == 11 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
-        #     reward -=500
-        #     terminated = True
+            reward -=self.PENALTY_11
+            terminated = True
 
         if self.agent_0_state == 9 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
-            reward -=100000
+            reward -=self.PENALTY_9
             terminated = True
         elif self.string[self.string_index]=="$":
             terminated = True
@@ -230,6 +237,7 @@ class UOEnv(gym.Env):
         # Note: In simulation mode, we still use variable "agent_0_state", but this refers to the actual global state.
         agent_id, communicate = action
         terminated = False
+        reward = 0
         
         curr_symbol=self.string[self.string_index]
         
@@ -257,11 +265,13 @@ class UOEnv(gym.Env):
                 self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
                 if communicate ==1:
                     self.communication_count+=1
+                    reward-=self.COMMUNICATE_COST
                     self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
             elif agent_id==2:
                 self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
                 if communicate == 1:
                     self.communication_count+=1
+                    reward-=self.COMMUNICATE_COST
                     self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
             else:
                 raise ValueError("Invalid agent_id. Must be 1 or 2.")
@@ -285,13 +295,25 @@ class UOEnv(gym.Env):
             curr_symbol=self.string[self.string_index]
         
         
+        if self.agent_0_state == 11 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
+            
+            reward -=self.PENALTY_11
+            terminated = True
+
+        if self.agent_0_state == 9 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
+            
+            reward -=self.PENALTY_9
+            terminated = True
+        elif self.string[self.string_index]=="$":
+            terminated = True
+        
         if self.string[self.string_index]=="$":
             terminated = True
         
         config = (self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
         info = {"input_alphabet":self.string[self.string_index], "string":self.string}
         
-        return np.array(config, dtype=np.int32), -1, terminated, False, info
+        return np.array(config, dtype=np.int32), reward, terminated, False, info
     
     def simulate(self, seven_or_ten=False, agent_1_disable_c=None, agent_2_disable_c=None):
         # Note: In simulation mode, we still use variable "agent_0_state", but this refers to the actual global state.

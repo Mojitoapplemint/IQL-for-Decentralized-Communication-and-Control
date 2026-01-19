@@ -1,11 +1,11 @@
 import random
 
-class StringGenerator:
+class TrainingWordGenerator:
     
     def __init__(self, max_star=5):
         self.max_star = max_star
 
-    def generate_training_str(self):        
+    def generate_training_word(self):        
         """
         Generates a string that matches the regex pattern:
         axac+aaxac+aaaaa*xac+aaxc+a(xsa+ayta+aazra)(xsa+ayta+aazra)*axc
@@ -56,7 +56,7 @@ class StringGenerator:
             
             return "a" + first_group + additional_groups + "axc"
 
-    def generate_simulation_str(self): 
+    def generate_simulation_word(self): 
         """
         Generates a string that matches the regex pattern:
         a(da)*xac+da(gaazra+dxsa+fayta)*axc
@@ -78,28 +78,29 @@ class StringGenerator:
             middle_groups = ""
             
             for _ in range(num_groups):
+                # middle_groups += "fayta"
                 middle_groups += random.choice(["gaazra", "dxsa", "fayta"])
             
             return "da" + middle_groups + "axc"
 
-    def generate_stats_str(self):
-        strings = []
-        for _ in range(1000):
-            choice = random.randint(1, 2)
-            if choice == 1:
-                num_a = random.randint(4, 4+self.max_star)
-                string = "a" + "a" * num_a + "xac"
-                strings.append(string)
-            else:
-                first_group = random.choice(["xsa", "ayta", "aazra"])
+    # def generate_stats_word(self):
+    #     strings = []
+    #     for _ in range(1000):
+    #         choice = random.randint(1, 2)
+    #         if choice == 1:
+    #             num_a = random.randint(4, 4+self.max_star)
+    #             string = "a" + "a" * num_a + "xac"
+    #             strings.append(string)
+    #         else:
+    #             first_group = random.choice(["xsa", "ayta", "aazra"])
             
-                # Zero or more additional groups
-                num_additional = random.randint(0, self.max_star)
-                additional_groups = ""
+    #             # Zero or more additional groups
+    #             num_additional = random.randint(0, self.max_star)
+    #             additional_groups = ""
                 
-                for _ in range(num_additional):
-                    additional_groups += random.choice(["xsa", "ayta", "aazra"])
+    #             for _ in range(num_additional):
+    #                 additional_groups += random.choice(["xsa", "ayta", "aazra"])
                 
-                string = "a" + first_group + additional_groups + "axc"
-                strings.append(string)
-        return strings
+    #             string = "a" + first_group + additional_groups + "axc"
+    #             strings.append(string)
+    #     return strings

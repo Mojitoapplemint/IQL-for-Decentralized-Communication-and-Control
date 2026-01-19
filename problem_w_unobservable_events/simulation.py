@@ -169,6 +169,9 @@ PHI_2={
 }
 
 
+# q_1=[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1]
+# q_2= [1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
 terminated = False
 truncated = False
 
@@ -180,65 +183,85 @@ q_2 = q_2.drop(q_2.columns[[0]], axis=1).to_numpy()
 # print(q_1)
 # print(q_2)
 
-env = gym.make('UOEnv-v0', render_mode=None, string_mode="simulation")
+comm_t = {}
 
+not_comm_t = {}
 
-config, info = env.reset()
+env = gym.make('UOEnv-v0', render_mode="human", string_mode="simulation")
 
-curr_symbol=info['input_alphabet']
+for i in range(1):
+    config, info = env.reset()
 
-_, agent_1_belief, agent_2_belief = config
+    curr_symbol=info['input_alphabet']
+    string = info['string']
 
-agent_1_in_dead_state = False
-agent_2_in_dead_state = False
+    _, agent_1_belief, agent_2_belief = config
 
-while not (terminated or truncated):
-    if curr_symbol in ['a', 'c']:
-        
-        agent_id=1
-        agent_1_row_num = len(PHI_1)+PHI_1[(agent_1_belief, curr_symbol)] if agent_2_in_dead_state else PHI_1[(agent_1_belief, curr_symbol)]
+    agent_1_in_dead_state = False
+    agent_2_in_dead_state = False
 
-        
-        if agent_2_in_dead_state:
-            agent_1_communicate = 0
-        else:
-            agent_1_communicate = np.argmax(q_1[agent_1_row_num])
-            # agent_1_communicate = q_1[agent_1_row_num]
+    while not (terminated or truncated):
+        if curr_symbol in ['a', 'c']:
             
-        config, _, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
-        
-        _, agent_1_belief, agent_2_belief = config
-        
-        agent_2_in_dead_state = agent_2_belief == -1
+            agent_id=1
+            agent_1_row_num = len(PHI_1)+PHI_1[(agent_1_belief, curr_symbol)] if agent_2_in_dead_state else PHI_1[(agent_1_belief, curr_symbol)]
 
-        
-        curr_symbol=info['input_alphabet']
-                    
-    if curr_symbol in ['x', 'y', 'z', 's', 't', 'r']:
-        agent_id=2
-        agent_2_row_num = len(PHI_2)+PHI_2[(agent_2_belief, curr_symbol)] if agent_1_in_dead_state else PHI_2[(agent_2_belief, curr_symbol)]
+            
+            if agent_2_in_dead_state:
+                agent_1_communicate = 0
+            else:
+                agent_1_communicate = np.argmax(q_1[agent_1_row_num])
+                # agent_1_communicate = q_1[agent_1_row_num]
+                
+            config, _, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
+            
+            _, agent_1_belief, agent_2_belief = config
+            
+            agent_2_in_dead_state = agent_2_belief == -1
 
-        if agent_1_in_dead_state:
-            agent_2_communicate = 0
-        else:        
-            agent_2_communicate = np.argmax(q_2[agent_2_row_num])
-            # agent_2_communicate = q_2[agent_2_row_num]
+            
+            curr_symbol=info['input_alphabet']
+                        
+        if curr_symbol in ['x', 'y', 'z', 's', 't', 'r']:
+            agent_id=2
+            agent_2_row_num = len(PHI_2)+PHI_2[(agent_2_belief, curr_symbol)] if agent_1_in_dead_state else PHI_2[(agent_2_belief, curr_symbol)]
 
-        config, _, terminated, _, info = env.step((agent_id, agent_2_communicate))
-        
-        _, agent_1_belief, agent_2_belief = config
-        
-        agent_1_in_dead_state = agent_1_belief == -1
-        
-        curr_symbol=info['input_alphabet']
+            if agent_1_in_dead_state:
+                agent_2_communicate = 0
+            else:        
+                agent_2_communicate = np.argmax(q_2[agent_2_row_num])
+                # agent_2_communicate = q_2[agent_2_row_num]
+
+            if curr_symbol == 't':
+                if agent_2_communicate == 1:
+                    if string not in comm_t:
+                        comm_t[string] = 0
+                    comm_t[string] += 1
+                else:
+                    if string not in not_comm_t:
+                        not_comm_t[string] = 0
+                    not_comm_t[string] += 1
+
+            config, _, terminated, _, info = env.step((agent_id, agent_2_communicate))
+            
+            _, agent_1_belief, agent_2_belief = config
+            
+            agent_1_in_dead_state = agent_1_belief == -1
+            
+            curr_symbol=info['input_alphabet']
 
 
-q_1_comm_protocol = [0 for _ in range (40)]
-q_2_comm_protocol = [0 for _ in range (120)]
-for i in range(len(q_1_comm_protocol)):
-    q_1_comm_protocol[i] = np.argmax(q_1[i])
-for i in range(len(q_2_comm_protocol)):
-    q_2_comm_protocol[i] = np.argmax(q_2[i])
+print(comm_t)
 
-protocol_key = (tuple(q_1_comm_protocol), tuple(q_2_comm_protocol))
-print(protocol_key)
+print()
+print(not_comm_t)
+
+# q_1_comm_protocol = [0 for _ in range (40)]
+# q_2_comm_protocol = [0 for _ in range (120)]
+# for i in range(len(q_1_comm_protocol)):
+#     q_1_comm_protocol[i] = np.argmax(q_1[i])
+# for i in range(len(q_2_comm_protocol)):
+#     q_2_comm_protocol[i] = np.argmax(q_2[i])
+
+# protocol_key = (tuple(q_1_comm_protocol), tuple(q_2_comm_protocol))
+# print(protocol_key)

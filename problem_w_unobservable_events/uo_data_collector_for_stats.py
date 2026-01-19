@@ -203,7 +203,7 @@ session_count = 10
 for i in range(session_count):
     print(str(100*i/session_count)+"%","done" , end="\r")
     env = gym.make('UOEnv-v0', render_mode=None, string_mode="training")
-    q_1, q_2 = q_training(env, epochs=50000, alpha=0.01, gamma=0.5, epsilon=0.1)
+    q_1, q_2 = q_training(env, epochs=10000, alpha=0.01, gamma=0.9, epsilon=0.1)
 
     env = gym.make('UOEnv-v0', render_mode=None, string_mode="simulation")
 
@@ -267,7 +267,7 @@ for i in range(session_count):
                 curr_symbol=info['input_alphabet']
         
         # print(global_state, agent_1_belief, agent_2_belief)
-        if (global_state != agent_1_belief) and (global_state != agent_2_belief):
+        if global_state ==9 and agent_1_belief ==-1 and agent_2_belief ==-1:
             fail_count += 1
         if global_state == agent_1_belief and global_state == agent_2_belief:
             over_comm_count += 1
@@ -314,10 +314,10 @@ for key in result_dict:
 
 # Save results to CSV
 fail_rate_df = pd.DataFrame(list(fail_rate_count.items()), columns=['Fail Rate (%)', 'Count'])
-fail_rate_df.to_csv("./problem_w_unobservable_events/exp_2_results.csv", index=False)
+print(fail_rate_df)
 
 over_comm_rate_df = pd.DataFrame(list(over_comm_rate_count.items()), columns=['Over-Communication Rate (%)', 'Count'])
-over_comm_rate_df.to_csv("./problem_w_unobservable_events/exp_2_over_communication_results.csv", index=False)
+print(over_comm_rate_df)
 
 success_protocols_df = pd.DataFrame(list(success_dict.items()), columns=['Communication Protocols', 'Success Count'])
-success_protocols_df.to_csv("./problem_w_unobservable_events/exp_2_successful_protocols.csv", index=False)
+success_protocols_df.to_csv("./problem_w_unobservable_events/smaller_9_penalty_successful_protocols.csv", index=False)
