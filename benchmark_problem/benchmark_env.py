@@ -9,7 +9,7 @@ gym.register(
 class BenchmarkEnv(gym.Env):
     COMMUNICATION_COST = 10
     
-    global_transitions={
+    m_L_transition={
         1:{'a': 2, 'b': 3},
         2:{'b': 4},
         3:{'a': 5},
@@ -17,7 +17,7 @@ class BenchmarkEnv(gym.Env):
         5:{'s': 7},
     }
     
-    bottom_transitions={
+    m_L_bot_transition={
         1:{'a': 2, 'b': 3, 's':-1},
         2:{'b': 4, 'a':-1, 's':-1},
         3:{'a': 5, 'b': -1, 's':-1},
@@ -66,17 +66,17 @@ class BenchmarkEnv(gym.Env):
         
         curr_symbol=self.string[self.string_index]
         
-        self.global_state = self.global_transitions[self.global_state].get(curr_symbol)
+        self.global_state = self.m_L_transition[self.global_state].get(curr_symbol)
         if agent_id==1:
-            self.agent_1_belief = self.bottom_transitions[self.agent_1_belief].get(curr_symbol)
+            self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
             if communicate == 1:
                 self.reward-=self.COMMUNICATION_COST
-                self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
+                self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
         elif agent_id==2:
-            self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
+            self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
             if communicate == 1:
                 self.reward-=self.COMMUNICATION_COST
-                self.agent_1_belief = self.bottom_transitions[self.agent_1_belief].get(curr_symbol)
+                self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
         else:
             raise ValueError("Invalid agent_id. Must be 1 or 2.")
         
@@ -86,9 +86,9 @@ class BenchmarkEnv(gym.Env):
             self.render()
         
         if self.string[self.string_index]=='s':
-            self.global_state=self.global_transitions[self.global_state].get('s')
-            self.agent_1_belief=self.bottom_transitions[self.agent_1_belief].get('s')
-            self.agent_2_belief=self.bottom_transitions[self.agent_2_belief].get('s')
+            self.global_state=self.m_L_transition[self.global_state].get('s')
+            self.agent_1_belief=self.m_L_bot_transition[self.agent_1_belief].get('s')
+            self.agent_2_belief=self.m_L_bot_transition[self.agent_2_belief].get('s')
 
             config=(self.global_state, self.agent_1_belief, self.agent_2_belief)
             

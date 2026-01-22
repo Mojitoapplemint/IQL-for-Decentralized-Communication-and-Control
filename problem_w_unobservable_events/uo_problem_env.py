@@ -44,8 +44,8 @@ class UOEnv(gym.Env):
         21:{'s':16}  
     }
     
-    # Converting agent beliefs to states in agent 0 observer for better readability
-    m_bottom={
+    # Converting agent beliefs to states in observer for better readability
+    m_L_bot={
         1:  {1,3},
         2:  {2,4,5,12,20,17},
         3:  {6,21},
@@ -68,7 +68,7 @@ class UOEnv(gym.Env):
         -1: {-1},
     }
     
-    agent_0_transitions={
+    observer_sigma_o={
         1:{'a':2},
         2:{'x':3, 'a':5},
         3:{'a':7, 's':16},
@@ -88,7 +88,7 @@ class UOEnv(gym.Env):
         21:{'s':16},
     }
 
-    bottom_trantitions={
+    m_L_bot_transition={
         1:{'a':2,                  'c':-1, 'x':-1, 'y':-1, 'z':-1, 's':-1, 't':-1, 'r':-1},
         2:{'x':3, 'a':5,           'c':-1, 'y':-1, 'z':-1, 's':-1, 't':-1, 'r':-1},
         3:{'a':7, 's':16,          'c':-1, 'x':-1, 'y':-1, 'z':-1, 't':-1, 'r':-1},
@@ -131,7 +131,7 @@ class UOEnv(gym.Env):
         
         self.string_index = 0
         
-        self.agent_0_state = 1
+        self.system_state = 1
         
         # Initialize agents' partial observations 
         self.agent_1_belief = 1
@@ -146,7 +146,7 @@ class UOEnv(gym.Env):
                 print(f"\nSimulation String: {self.string}")
                 self.simulate()
             if self.string[self.string_index] == 'd':
-                self.agent_0_state = self.simulation_transitions[self.agent_0_state].get('d')
+                self.system_state = self.simulation_transitions[self.system_state].get('d')
                 self.string_index += 1
             if self.render_mode == 'human':
                 self.simulate()
@@ -161,11 +161,11 @@ class UOEnv(gym.Env):
             self.index = (self.index + 1) % len(self.string_list)
             self.string += "$"
             if self.string[self.string_index] == 'd':
-                self.agent_0_state = self.simulation_transitions[self.agent_0_state].get('d')
+                self.system_state = self.simulation_transitions[self.system_state].get('d')
                 self.string_index += 1
             
         
-        config = (self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
+        config = (self.system_state, self.agent_1_belief, self.agent_2_belief)
         
         info = {"input_alphabet":self.string[self.string_index], "string":self.string }
         
@@ -181,17 +181,17 @@ class UOEnv(gym.Env):
         
         curr_symbol=self.string[self.string_index]
         
-        self.agent_0_state = self.agent_0_transitions[self.agent_0_state].get(curr_symbol)
+        self.system_state = self.observer_sigma_o[self.system_state].get(curr_symbol)
         if agent_id==1:
-            self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
+            self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
             if communicate == 1:
                 reward-=self.COMMUNICATE_COST
-                self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
+                self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
         elif agent_id==2:
-            self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
+            self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
             if communicate == 1:
                 reward-=self.COMMUNICATE_COST
-                self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
+                self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
         else:
             raise ValueError("Invalid agent_id. Must be 1 or 2.")
                 
@@ -208,12 +208,12 @@ class UOEnv(gym.Env):
         #     reward -= 15
 
 
-        if self.agent_0_state == 11 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
+        if self.system_state == 11 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
             reward -=self.PENALTY_11
             terminated = True
 
-        if self.agent_0_state == 9 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
+        if self.system_state == 9 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
             reward -=self.PENALTY_9
             terminated = True
@@ -222,7 +222,7 @@ class UOEnv(gym.Env):
         
 
         
-        config = (self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
+        config = (self.system_state, self.agent_1_belief, self.agent_2_belief)
         info = {"input_alphabet":self.string[self.string_index], "string":self.string}
         return np.array(config, dtype=np.int32), reward, terminated, False, info
     
@@ -231,7 +231,7 @@ class UOEnv(gym.Env):
         # print(self.agent_0_state, self.m_bottom[self.agent_0_state])
         # print(self.agent_1_belief, self.agent_2_belief)
         # print(self.m_bottom[self.agent_1_belief], self.m_bottom[self.agent_2_belief])
-        print(f"Config: <{self.agent_0_state}:{self.m_bottom[self.agent_0_state]}, {self.agent_1_belief}:{self.m_bottom[self.agent_1_belief]}, {self.agent_2_belief}:{self.m_bottom[self.agent_2_belief]}>")
+        print(f"Config: <{self.system_state}:{self.m_L_bot[self.system_state]}, {self.agent_1_belief}:{self.m_L_bot[self.agent_1_belief]}, {self.agent_2_belief}:{self.m_L_bot[self.agent_2_belief]}>")
     
     def simulation_step(self, action):
         # Note: In simulation mode, we still use variable "agent_0_state", but this refers to the actual global state.
@@ -242,7 +242,7 @@ class UOEnv(gym.Env):
         curr_symbol=self.string[self.string_index]
         
         if curr_symbol == 'c':
-            if self.agent_0_state not in [7,10]:
+            if self.system_state not in [7,10]:
                 raise ValueError("Disable action can only be taken at state 7 or 10 in simulation.")
             
             # Control Policy: If in state 7:{7}, disable 'c'
@@ -251,28 +251,28 @@ class UOEnv(gym.Env):
             
             
             if not (agent_1_disable_c or agent_2_disable_c):
-                self.agent_0_state = self.simulation_transitions[self.agent_0_state].get(curr_symbol)
-                self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
+                self.system_state = self.simulation_transitions[self.system_state].get(curr_symbol)
+                self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
                 if communicate == 1:
                     self.communication_count+=1
-                    self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
+                    self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
             
             if self.render_mode == 'human':
                 self.simulate(True, agent_1_disable_c, agent_2_disable_c)
         else:
-            self.agent_0_state = self.simulation_transitions[self.agent_0_state].get(curr_symbol)
+            self.system_state = self.simulation_transitions[self.system_state].get(curr_symbol)
             if agent_id==1:
-                self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
+                self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
                 if communicate ==1:
                     self.communication_count+=1
                     reward-=self.COMMUNICATE_COST
-                    self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
+                    self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
             elif agent_id==2:
-                self.agent_2_belief = self.bottom_trantitions[self.agent_2_belief].get(curr_symbol)
+                self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
                 if communicate == 1:
                     self.communication_count+=1
                     reward-=self.COMMUNICATE_COST
-                    self.agent_1_belief = self.bottom_trantitions[self.agent_1_belief].get(curr_symbol)
+                    self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
             else:
                 raise ValueError("Invalid agent_id. Must be 1 or 2.")
             
@@ -287,7 +287,7 @@ class UOEnv(gym.Env):
         curr_symbol=self.string[self.string_index]
         
         if curr_symbol in ['d','g', 'f']:
-            self.agent_0_state = self.simulation_transitions[self.agent_0_state].get(curr_symbol)
+            self.system_state = self.simulation_transitions[self.system_state].get(curr_symbol)
             if self.render_mode == 'human':
                 self.simulate()
             
@@ -295,12 +295,12 @@ class UOEnv(gym.Env):
             curr_symbol=self.string[self.string_index]
         
         
-        if self.agent_0_state == 11 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
+        if self.system_state == 11 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
             reward -=self.PENALTY_11
             terminated = True
 
-        if self.agent_0_state == 9 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
+        if self.system_state == 9 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
             reward -=self.PENALTY_9
             terminated = True
@@ -310,7 +310,7 @@ class UOEnv(gym.Env):
         if self.string[self.string_index]=="$":
             terminated = True
         
-        config = (self.agent_0_state, self.agent_1_belief, self.agent_2_belief)
+        config = (self.system_state, self.agent_1_belief, self.agent_2_belief)
         info = {"input_alphabet":self.string[self.string_index], "string":self.string}
         
         return np.array(config, dtype=np.int32), reward, terminated, False, info
@@ -319,9 +319,9 @@ class UOEnv(gym.Env):
         # Note: In simulation mode, we still use variable "agent_0_state", but this refers to the actual global state.
         
         a = [" " for _ in range(22)]
-        a[self.agent_0_state] = "#"
+        a[self.system_state] = "#"
         
-        print(f"global state: {self.agent_0_state},\n agent 1's belief: {self.agent_1_belief}:{self.m_bottom[self.agent_1_belief]},\n agent 2's belief: {self.agent_2_belief}:{self.m_bottom[self.agent_2_belief]}>,\n Current symbol: '{self.string[self.string_index]}', # comm: {self.communication_count}")
+        print(f"global state: {self.system_state},\n agent 1's belief: {self.agent_1_belief}:{self.m_L_bot[self.agent_1_belief]},\n agent 2's belief: {self.agent_2_belief}:{self.m_L_bot[self.agent_2_belief]}>,\n Current symbol: '{self.string[self.string_index]}', # comm: {self.communication_count}")
         
         
         block = "|"
@@ -334,9 +334,9 @@ class UOEnv(gym.Env):
             if agent_2_disable_c:
                 print(f"Agent 2 disables 'c' at state {self.agent_2_belief}")
             
-            if self.agent_0_state == 7 and not (agent_1_disable_c or agent_2_disable_c):
+            if self.system_state == 7 and not (agent_1_disable_c or agent_2_disable_c):
                 print("Failed to disable 'c'")
-            elif self.agent_0_state == 10 and (agent_1_disable_c or agent_2_disable_c):
+            elif self.system_state == 10 and (agent_1_disable_c or agent_2_disable_c):
                 print("Failed to enable 'c'")
             else:
                 print("Successfully controlled 'c'")

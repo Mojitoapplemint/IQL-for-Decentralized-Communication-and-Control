@@ -10,7 +10,7 @@ from word_generator import TrainingWordGenerator
 A1_OBSERVABLE_EVENTS = ['a', 'c']
 A2_OBSERVABLE_EVENTS = ['x', 'y', 'z', 's', 't', 'r']
 
-PHI_1={
+S_1={
     (1, 'a'):0,
     (2, 'a'):1,
     (3, 'a'):2,
@@ -53,7 +53,7 @@ PHI_1={
     (-1,'c'):39,
 }
 
-PHI_2={
+S_2={
     (1, 'x'):0,
     (2, 'x'):1,
     (3, 'x'):2,
@@ -176,7 +176,7 @@ PHI_2={
     (-1,'r'):119,
 }
 
-m_bottom={
+m_L_bot={
     1:  "{1,3}",
     2:  "{2,4,5,12,20,17}",
     3:  "{6,21}",
@@ -351,7 +351,7 @@ for index, row in successful_protocols.iterrows():
                 if agent_2_in_dead_state:
                     agent_1_communicate = 0
                 else:
-                    agent_1_row_num = len(PHI_1)+PHI_1[(agent_1_belief, curr_symbol)] if agent_2_in_dead_state else PHI_1[(agent_1_belief, curr_symbol)]
+                    agent_1_row_num = len(S_1)+S_1[(agent_1_belief, curr_symbol)] if agent_2_in_dead_state else S_1[(agent_1_belief, curr_symbol)]
                     agent_1_communicate = q_1[agent_1_row_num]
                     
                 if agent_1_communicate ==1:
@@ -387,7 +387,7 @@ for index, row in successful_protocols.iterrows():
                 if agent_1_in_dead_state:
                     agent_2_communicate = 0
                 else:
-                    agent_2_row_num = len(PHI_2)+PHI_2[(agent_2_belief, curr_symbol)] if agent_1_in_dead_state else PHI_2[(agent_2_belief, curr_symbol)]
+                    agent_2_row_num = len(S_2)+S_2[(agent_2_belief, curr_symbol)] if agent_1_in_dead_state else S_2[(agent_2_belief, curr_symbol)]
                     agent_2_communicate = q_2[agent_2_row_num]
                 
                 if curr_symbol not in comm_dict_in_dead_state:

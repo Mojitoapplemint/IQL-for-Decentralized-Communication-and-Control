@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, './problem_w_unobservable_events')
 import  uo_problem_env
 
-PHI_1={
+S_1={
     (1, 'a'):0,
     (2, 'a'):1,
     (3, 'a'):2,
@@ -49,7 +49,7 @@ PHI_1={
     (-1,'c'):39,
 }
 
-PHI_2={
+S_2={
     (1, 'x'):0,
     (2, 'x'):1,
     (3, 'x'):2,
@@ -182,8 +182,8 @@ def get_action(q_table, opponent_in_dead_state, row_num, epsilon):
         
 
 def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_process=False):
-    q_1 = np.zeros((2*len(PHI_1), env.action_space.n))
-    q_2 = np.zeros((2*len(PHI_2), env.action_space.n))  
+    q_1 = np.zeros((2*len(S_1), env.action_space.n))
+    q_2 = np.zeros((2*len(S_2), env.action_space.n))  
     
     for epoch in range(epochs):
         
@@ -196,8 +196,8 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
         
         _, agent_1_belief, agent_2_belief = config
         
-        agent_1_prev_row_num = -1
-        agent_2_prev_row_num = -1
+        prev_s_1 = -1
+        prev_s_2 = -1
         
         terminated = False
         truncated = False
@@ -215,15 +215,15 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
             if curr_symbol in ['a', 'c']:
                 
                 agent_id=1
-                agent_1_row_num = len(PHI_1)+PHI_1[(agent_1_belief, curr_symbol)] if agent_2_in_dead_state else PHI_1[(agent_1_belief, curr_symbol)]
+                s_1 = len(S_1)+S_1[(agent_1_belief, curr_symbol)] if agent_2_in_dead_state else S_1[(agent_1_belief, curr_symbol)]
 
                 
-                if agent_1_prev_row_num != -1 :
+                if prev_s_1 != -1 :
                     # Q-value update for agent 1
-                    q_1[agent_1_prev_row_num][agent_1_communicate] += alpha * (reward_1 + gamma * np.max(q_1[agent_1_row_num]) - q_1[agent_1_prev_row_num][agent_1_communicate])
+                    q_1[prev_s_1][agent_1_communicate] += alpha * (reward_1 + gamma * np.max(q_1[s_1]) - q_1[prev_s_1][agent_1_communicate])
                     reward_1 = 0
                 
-                agent_1_communicate = get_action(q_1, agent_2_in_dead_state, agent_1_row_num, epsilon)
+                agent_1_communicate = get_action(q_1, agent_2_in_dead_state, s_1, epsilon)
                 config, reward, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
                 
                 _, agent_1_belief, agent_2_belief = config
@@ -234,21 +234,21 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
                 
                 curr_symbol=info['input_alphabet']
                 
-                agent_1_prev_row_num = agent_1_row_num
+                prev_s_1 = s_1
                             
             if curr_symbol in ['x', 'y', 'z', 's', 't', 'r']:
                 agent_id=2
-                agent_2_row_num = len(PHI_2)+PHI_2[(agent_2_belief, curr_symbol)] if agent_1_in_dead_state else PHI_2[(agent_2_belief, curr_symbol)]
+                s_2 = len(S_2)+S_2[(agent_2_belief, curr_symbol)] if agent_1_in_dead_state else S_2[(agent_2_belief, curr_symbol)]
 
                 
-                if agent_2_prev_row_num != -1 :
+                if prev_s_2 != -1 :
                     # print(agent_2_prev_row_num, agent_2_communicate, reward_2)
                     
                     # Q-value update for agent 2
-                    q_2[agent_2_prev_row_num][agent_2_communicate] += alpha * (reward_2 + gamma * np.max(q_2[agent_2_row_num]) - q_2[agent_2_prev_row_num][agent_2_communicate])
+                    q_2[prev_s_2][agent_2_communicate] += alpha * (reward_2 + gamma * np.max(q_2[s_2]) - q_2[prev_s_2][agent_2_communicate])
                     reward_2 = 0
                 
-                agent_2_communicate = get_action(q_2, agent_1_in_dead_state, agent_2_row_num, epsilon)
+                agent_2_communicate = get_action(q_2, agent_1_in_dead_state, s_2, epsilon)
                 # print(agent_2_row_num)
                 config, reward, terminated, truncated, info = env.step((agent_id, agent_2_communicate))
                 # print(reward)
@@ -261,15 +261,15 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
                                 
                 curr_symbol=info['input_alphabet']
                 
-                agent_2_prev_row_num = agent_2_row_num
+                prev_s_2 = s_2
         
         reward_1 += reward
         reward_2 += reward
         
         
         # Final Q-value updates
-        q_1[agent_1_prev_row_num][agent_1_communicate] += alpha * (reward_1 + gamma * 0 - q_1[agent_1_prev_row_num][agent_1_communicate])
-        q_2[agent_2_prev_row_num][agent_2_communicate] += alpha * (reward_2 + gamma * 0 - q_2[agent_2_prev_row_num][agent_2_communicate])
+        q_1[prev_s_1][agent_1_communicate] += alpha * (reward_1 + gamma * 0 - q_1[prev_s_1][agent_1_communicate])
+        q_2[prev_s_2][agent_2_communicate] += alpha * (reward_2 + gamma * 0 - q_2[prev_s_2][agent_2_communicate])
 
     return q_1, q_2
 

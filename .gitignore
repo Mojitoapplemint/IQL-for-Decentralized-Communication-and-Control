@@ -1,4 +1,3 @@
-cyclic_problem
 benchmark_problem/*.csv
 benchmark_problem/*.png
 problem_w_unobservable_events/*.csv
