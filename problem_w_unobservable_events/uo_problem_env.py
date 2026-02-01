@@ -15,14 +15,13 @@ class UOEnv(gym.Env):
     PENALTY_11 = 100
     PENALTY_9 = 100
     
-    
     # symbol replacement
     #    a1 -> a,   c1 -> c
     #   b21 -> x,  b22 -> y,  b23 -> z
     #   e21 -> s,  e22 -> t,  e23 -> r
     
     # Actual transitions of the system
-    simulation_transitions={
+    m_L_transitions={
         1: {'a':2, 'd':3},
         2: {'d':4, 'x':6},
         3: {'a':5},
@@ -146,7 +145,7 @@ class UOEnv(gym.Env):
                 print(f"\nSimulation String: {self.string}")
                 self.simulate()
             if self.string[self.string_index] == 'd':
-                self.system_state = self.simulation_transitions[self.system_state].get('d')
+                self.system_state = self.m_L_transitions[self.system_state].get('d')
                 self.string_index += 1
             if self.render_mode == 'human':
                 self.simulate()
@@ -161,7 +160,7 @@ class UOEnv(gym.Env):
             self.index = (self.index + 1) % len(self.string_list)
             self.string += "$"
             if self.string[self.string_index] == 'd':
-                self.system_state = self.simulation_transitions[self.system_state].get('d')
+                self.system_state = self.m_L_transitions[self.system_state].get('d')
                 self.string_index += 1
             
         
@@ -251,7 +250,7 @@ class UOEnv(gym.Env):
             
             
             if not (agent_1_disable_c or agent_2_disable_c):
-                self.system_state = self.simulation_transitions[self.system_state].get(curr_symbol)
+                self.system_state = self.m_L_transitions[self.system_state].get(curr_symbol)
                 self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
                 if communicate == 1:
                     self.communication_count+=1
@@ -260,7 +259,7 @@ class UOEnv(gym.Env):
             if self.render_mode == 'human':
                 self.simulate(True, agent_1_disable_c, agent_2_disable_c)
         else:
-            self.system_state = self.simulation_transitions[self.system_state].get(curr_symbol)
+            self.system_state = self.m_L_transitions[self.system_state].get(curr_symbol)
             if agent_id==1:
                 self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
                 if communicate ==1:
@@ -287,7 +286,7 @@ class UOEnv(gym.Env):
         curr_symbol=self.string[self.string_index]
         
         if curr_symbol in ['d','g', 'f']:
-            self.system_state = self.simulation_transitions[self.system_state].get(curr_symbol)
+            self.system_state = self.m_L_transitions[self.system_state].get(curr_symbol)
             if self.render_mode == 'human':
                 self.simulate()
             

@@ -220,8 +220,8 @@ m_L_bot={
 # df.to_csv("problem_w_unobservable_events/simulation_words.csv", index=False)
 
 
-successful_protocols = pd.read_csv("problem_w_unobservable_events/smaller_9_penalty_successful_protocols.csv")
-# successful_protocols = pd.read_csv("problem_w_unobservable_events/larger_11_penalty_successful_protocols.csv")
+# successful_protocols = pd.read_csv("problem_w_unobservable_events/smaller_9_penalty_successful_protocols.csv")
+successful_protocols = pd.read_csv("problem_w_unobservable_events/larger_11_penalty_successful_protocols.csv")
 # successful_protocols = pd.read_csv("problem_w_unobservable_events/baselines_always_com.csv")
 # successful_protocols = pd.read_csv("problem_w_unobservable_events/successful_protocols.csv")
 
@@ -431,8 +431,11 @@ for index, row in successful_protocols.iterrows():
                 agent_2_prev_row_num = agent_2_row_num
 
         
-        # reward_1 += reward
-        reward_2 += reward
+        
+        if agent_id ==1:
+            reward_2 += reward
+        else:
+            reward_1 += reward
         
         return_value[0] += reward_1
         return_value[1] += reward_2
