@@ -107,7 +107,7 @@ def get_action(q_table, agent_j_in_dead_state, agent_k_in_dead_state, row_num):
 
 
 
-env = gym.make('ThreeAgentsEnv-v0', render_mode="simulation")
+env = gym.make('ThreeAgentsEnv-v0', render_mode=None, string_mode="simulation")
 
 count_list = []
 
@@ -123,11 +123,11 @@ for i in range(6):
     agent_3_in_dead_state = False
     
     terminated = False
-    truncated = False
+    simulation_result = False
 
     count = 0
 
-    while not(terminated or truncated):
+    while not(terminated):
         if curr_event == 'a':
             agent_id = 1
             agent_1_row_num = S[(agent_1_obs, agent_2_in_dead_state, agent_3_in_dead_state)]
@@ -138,7 +138,7 @@ for i in range(6):
             
             a1_action = [1,1,a1_action[0], a1_action[1]]
             
-            state, _, terminated, truncated, info = env.step((agent_id, a1_action))
+            state, _, terminated, simulation_result, info = env.step((agent_id, a1_action))
             
             _, agent_1_obs, agent_2_obs, agent_3_obs = state
             
@@ -157,7 +157,7 @@ for i in range(6):
             
             a2_action = [1,1,a2_action[0], a2_action[1]]
             
-            state, _, terminated, truncated, info = env.step((agent_id, a2_action))
+            state, _, terminated, simulation_result, info = env.step((agent_id, a2_action))
             
             _, agent_1_obs, agent_2_obs, agent_3_obs = state
             
@@ -175,7 +175,7 @@ for i in range(6):
             
             a3_action = [1,1,a3_action[0], a3_action[1]]
             
-            state, _, terminated, truncated, info = env.step((agent_id, a3_action))
+            state, _, terminated, simulation_result, info = env.step((agent_id, a3_action))
             
             _, agent_1_obs, agent_2_obs, agent_3_obs = state
             

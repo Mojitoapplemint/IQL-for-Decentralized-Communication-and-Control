@@ -3,13 +3,15 @@ import numpy as np
 import time
 from IPython.display import clear_output
 
+import random
+
 gym.register(
     id="ThreeAgentsEnv-v0",
     entry_point="three_agents_env:ThreeAgentsEnv",
 )
 
 class ThreeAgentsEnv(gym.Env):
-    COMMUNICATE_COST = 50
+    COMMUNICATE_COST = 10
     
     m_L_transitions = {
         1: {'a':2, 'b':7, 'c':12},
@@ -43,18 +45,20 @@ class ThreeAgentsEnv(gym.Env):
         16: {'':16,                       's':-1,'a':-1, 'b':-1, 'c':-1},
     }
     
-    metadata = {'render_modes': ['human', 'simulation']}
+    metadata = {'render_modes': ['human'], 'string_modes':['training', 'simulation']}
     
-    L_tilde = ["abs", "acs", "bas", "bcs", "cas", "cbs"]
+    L_tilde = ["abs", "bcs", "cas", "acs", "bas", "cbs"]
     
-    def __init__(self, render_mode=None):
+    def __init__(self, render_mode=None, string_mode='training'):
         self.action_space = gym.spaces.Discrete(4) 
         self.observation_space = gym.spaces.Box(low=-1, high=16, shape=(4,), dtype=np.int32)
         
         assert render_mode is None or render_mode in self.metadata['render_modes']
+        assert string_mode in self.metadata['string_modes']
         
+        self.string_mode = string_mode
         self.render_mode = render_mode
-        self.training_word_selection = 0
+        self.training_word_selection = random.randint(0, 5)
     
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -68,13 +72,14 @@ class ThreeAgentsEnv(gym.Env):
         
         self.training_word_selection = (self.training_word_selection + 1) % len(self.L_tilde)
         
-        if self.render_mode == 'human':
+        if self.string_mode == 'simulation' and self.render_mode == 'human':
+            print("\n======== New Simulation =========")
+            print("Simulation String: ", self.input_word)
+            self.simulate()
+        elif self.render_mode == 'human':
             print("\n======== New Epoch =========")
             print("Training String: ", self.input_word, "\n")
             self.render()
-        elif self.render_mode == 'simulation':
-            print("Simulation String: ", self.input_word)
-            self.simulate()
 
         config = (self.system_state, self.agent_1_state, self.agent_2_state, self.agent_3_state)
 
@@ -85,7 +90,7 @@ class ThreeAgentsEnv(gym.Env):
         return config, info
     
     def step(self, action):
-        if self.render_mode == 'simulation':
+        if self.string_mode == 'simulation':
             return self.simulation_step(action)
         reward = 0
         agent_id, communicate = action
@@ -164,6 +169,7 @@ class ThreeAgentsEnv(gym.Env):
         reward = 0
         agent_id, communicate = action
         terminated = False
+        simulation_result = False
         
         curr_event = self.input_word[self.training_word_index]
         
@@ -179,20 +185,20 @@ class ThreeAgentsEnv(gym.Env):
         
         communication_cost = sum(communicate) * self.COMMUNICATE_COST
         
+        if self.render_mode == 'human' :
+            temp = [1,2,3]
+            events = ['a','b','c']
+            
+            temp.remove(agent_id)
+                        
+            receive_1 = communicate[temp[0]]
+            receive_2 = communicate[temp[1]]
 
-        temp = [1,2,3]
-        events = ['a','b','c']
-        
-        temp.remove(agent_id)
-                    
-        receive_1 = communicate[temp[0]]
-        receive_2 = communicate[temp[1]]
-
-        self.render()
-        print(f"Agent {agent_id} {'communicated' if receive_1 else 'did not communicate'} '{events[agent_id-1]}' to Agent {temp[0]}")
-        print(f"Agent {agent_id} {'communicated' if receive_2 else 'did not communicate'} '{events[agent_id-1]}' to Agent {temp[1]}")
-        
-        self.simulate()
+            self.render()
+            print(f"Agent {agent_id} {'communicated' if receive_1 else 'did not communicate'} '{events[agent_id-1]}' to Agent {temp[0]}")
+            print(f"Agent {agent_id} {'communicated' if receive_2 else 'did not communicate'} '{events[agent_id-1]}' to Agent {temp[1]}")
+            
+            self.simulate()
         
         self.training_word_index += 1
         
@@ -213,13 +219,21 @@ class ThreeAgentsEnv(gym.Env):
                 self.agent_2_state = self.m_L_bot_transitions[self.agent_2_state]['s']
             
                 self.agent_3_state = self.m_L_bot_transitions[self.agent_3_state]['s']
-            
-            self.render()
-            self.simulate(agent_1_disable=agent_1_disable, agent_2_disable=agent_2_disable, agent_3_disable=agent_3_disable)
+
+            if self.render_mode == 'human':  
+                print(f"\nEvent '{self.input_word[self.training_word_index]}' occured")            
+                self.render()
+                self.simulate(agent_1_disable=agent_1_disable, agent_2_disable=agent_2_disable, agent_3_disable=agent_3_disable)
             
             self.training_word_index += 1
             curr_event=self.input_word[self.training_word_index] 
 
+            if self.system_state in [6,11,16] and not (agent_1_disable or agent_2_disable or agent_3_disable):
+                simulation_result = True
+            
+            if self.system_state in [3,8,13] and (agent_1_disable or agent_2_disable or agent_3_disable):
+                simulation_result = True
+            
         if curr_event == '$':
             terminated = True
         
@@ -230,7 +244,7 @@ class ThreeAgentsEnv(gym.Env):
 
         info = {'curr_event': curr_event, "string": self.input_word}
         
-        return np.array(config, dtype=np.int32), (reward, communication_cost), terminated, False, info
+        return np.array(config, dtype=np.int32), (reward, communication_cost), terminated, simulation_result, info
 
     
     def simulate(self, agent_1_disable=False, agent_2_disable=False, agent_3_disable=False):
