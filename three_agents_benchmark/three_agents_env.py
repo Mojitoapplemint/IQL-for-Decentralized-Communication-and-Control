@@ -19,7 +19,7 @@ class ThreeAgentsEnv(gym.Env):
         3: {'c':5},
         4: {'b':6},
         5: {'s':17},
-        5: {'s':18},
+        6: {'s':18},
         7: {'a':9, 'c':8},
         8: {'a':10},
         9: {'c':11},
@@ -37,27 +37,34 @@ class ThreeAgentsEnv(gym.Env):
         2:  {'':2 , 'b':3, 'c':4,         'a':-1, 's':-1},
         3:  {'':3 , 'c':5,                'a':-1, 'b':-1, 's':-1},
         4:  {'':4 , 'b':6,                'a':-1, 'c':-1, 's':-1},
-        5:  {'':5 ,                       's':-1,'a':-1, 'b':-1, 'c':-1},
-        6:  {'':6 ,                       's':-1,'a':-1, 'b':-1, 'c':-1},
+        5:  {'':5 , 's':17,               'a':-1, 'b':-1, 'c':-1},
+        6:  {'':6 , 's':18,               'a':-1, 'b':-1, 'c':-1},
         7:  {'':7 , 'a':9, 'c':8,         'b':-1, 's':-1},
         8:  {'':8 , 'a':10,               'b':-1, 'c':-1, 's':-1},
         9:  {'':9 , 'c':11,               'a':-1, 'b':-1, 's':-1},
-        10: {'':10,                       's':-1,'a':-1, 'b':-1, 'c':-1},
-        11: {'':11,                       's':-1,'a':-1, 'b':-1, 'c':-1},
+        10: {'':10, 's':20,               'a':-1, 'b':-1, 'c':-1},
+        11: {'':11, 's':19,               'a':-1, 'b':-1, 'c':-1},
         12: {'':12, 'a':13, 'b':14,       'c':-1, 's':-1},
         13: {'':13, 'b':15,               'a':-1, 's':-1, 'c':-1},
         14: {'':14, 'a':16,               'b':-1, 'c':-1, 's':-1},
-        15: {'':15,                       's':-1,'a':-1, 'b':-1, 'c':-1},
-        16: {'':16,                       's':-1,'a':-1, 'b':-1, 'c':-1},
+        15: {'':15, 's':22,               'a':-1, 'b':-1, 'c':-1},
+        16: {'':16, 's':21,               'a':-1, 'b':-1, 'c':-1},
+        17: {'':17,                       's':-1, 'a':-1, 'b':-1, 'c':-1},
+        18: {'':18,                       's':-1, 'a':-1, 'b':-1, 'c':-1},
+        19: {'':19,                       's':-1, 'a':-1, 'b':-1, 'c':-1},
+        20: {'':20,                       's':-1, 'a':-1, 'b':-1, 'c':-1},
+        21: {'':21,                       's':-1, 'a':-1, 'b':-1, 'c':-1},
+        22: {'':22,                       's':-1, 'a':-1, 'b':-1, 'c':-1},
+        -1: {'':-1,                       's':-1, 'a':-1, 'b':-1, 'c':-1},
     }
     
     metadata = {'render_modes': ['human'], 'string_modes':['training', 'simulation']}
     
-    L_tilde = ["abs", "bcs", "cas", "acs", "bas", "cbs"]
+    L_tilde = ["abcs", "bcas", "cabs", "acbs", "bacs", "cbas"]
     
     def __init__(self, render_mode=None, string_mode='training'):
         self.action_space = gym.spaces.Discrete(4) 
-        self.observation_space = gym.spaces.Box(low=-1, high=16, shape=(4,), dtype=np.int32)
+        self.observation_space = gym.spaces.Box(low=-1, high=22, shape=(4,), dtype=np.int32)
         
         assert render_mode is None or render_mode in self.metadata['render_modes']
         assert string_mode in self.metadata['string_modes']
@@ -102,9 +109,20 @@ class ThreeAgentsEnv(gym.Env):
         agent_id, communicate = action
         terminated = False
         
+        # print(communicate)
+        
         curr_event = self.input_word[self.training_word_index]
         
-        vector_label = [curr_event if communicate[i]==1 else '' for i in range(4)]
+        vector_label = [0,0,0,0]
+        
+        if agent_id == 1:
+            vector_label = [1,1,communicate[0], communicate[1]]
+        if agent_id == 2:
+            vector_label = [1,communicate[0], 1, communicate[1]]
+        if agent_id == 3:
+            vector_label = [1,communicate[0], communicate[1], 1]
+        
+        vector_label = [curr_event if vector_label[i]==1 else '' for i in range(4)]
         
         self.system_state = self.m_L_transitions[self.system_state][vector_label[0]]
         
@@ -122,14 +140,16 @@ class ThreeAgentsEnv(gym.Env):
             
             temp.remove(agent_id)
                         
-            receive_1 = communicate[temp[0]]
-            receive_2 = communicate[temp[1]]
+            receive_1 = vector_label[temp[0]]
+            receive_2 = vector_label[temp[1]]
             
             print(f"Agent {agent_id} {'communicated' if receive_1 else 'did not communicate'} '{events[agent_id-1]}' to Agent {temp[0]}")
             print(f"Agent {agent_id} {'communicated' if receive_2 else 'did not communicate'} '{events[agent_id-1]}' to Agent {temp[1]}")
+            print(communication_cost)
             
             print(f"\nEvent '{self.input_word[self.training_word_index]}' occured")
             self.render()
+            
         
         self.training_word_index += 1
         
@@ -152,7 +172,7 @@ class ThreeAgentsEnv(gym.Env):
             curr_event=self.input_word[self.training_word_index] 
         
         
-        if self.system_state in [5,6,10,11,15,15] and self.agent_1_state == -1 and self.agent_2_state == -1 and self.agent_3_state == -1:
+        if self.system_state in [17,18,19,20,21,22] and self.agent_1_state == -1 and self.agent_2_state == -1 and self.agent_3_state == -1:
             terminated = True
             reward -= 100
         
@@ -212,9 +232,9 @@ class ThreeAgentsEnv(gym.Env):
         
         
         if curr_event == 's':
-            agent_1_disable = self.agent_1_state in [3,8,13]
-            agent_2_disable = self.agent_2_state in [3,8,13]
-            agent_3_disable = self.agent_3_state in [3,8,13]
+            agent_1_disable = self.agent_1_state in [5,10,15]
+            agent_2_disable = self.agent_2_state in [5,10,15]
+            agent_3_disable = self.agent_3_state in [5,10,15]
             
             if not (agent_1_disable or agent_2_disable or agent_3_disable):
             
@@ -234,10 +254,10 @@ class ThreeAgentsEnv(gym.Env):
             self.training_word_index += 1
             curr_event=self.input_word[self.training_word_index] 
 
-            if self.system_state in [6,11,16] and not (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state in [18,19, 21] and not (agent_1_disable or agent_2_disable or agent_3_disable):
                 simulation_result = True
             
-            if self.system_state in [3,8,13] and (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state in [5,10,15] and (agent_1_disable or agent_2_disable or agent_3_disable):
                 simulation_result = True
             
         if curr_event == '$':
@@ -255,7 +275,7 @@ class ThreeAgentsEnv(gym.Env):
     
     def simulate(self, agent_1_disable=False, agent_2_disable=False, agent_3_disable=False):
         
-        a = [" " for _ in range(17)]
+        a = [" " for _ in range(23)]
         a[self.system_state] = "#"        
         
         
@@ -268,50 +288,55 @@ class ThreeAgentsEnv(gym.Env):
                 block_v = "X"
                 block_h = "X"
             
-            if self.system_state in [6,11,16] and agent_1_disable and agent_2_disable and agent_3_disable:
+            if self.system_state in [18,19,21] and agent_1_disable and agent_2_disable and agent_3_disable:
                 print("\nFailed to enable the event\n")
 
-            if self.system_state in [6,11,16] and not (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state in [18,19,21] and not (agent_1_disable or agent_2_disable or agent_3_disable):
                 print("\nSuccessfully enabled the event\n")
             
-            if self.system_state in [3,8,13] and (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state in [5,10,15] and (agent_1_disable or agent_2_disable or agent_3_disable):
                 print("\nSuccessfully disabled the event\n")
                 
-            if self.system_state in [3,8,13] and not (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state in [5,10,15] and not (agent_1_disable or agent_2_disable or agent_3_disable):
                 print("\nFailed to disable the event\n")
         
-        
         print(
-            f" +=15=+    s   +-13-+                                        +-3-+   s    +=5=+  \n"
-            f" |  {a[15]} | <{block_h} {block_h} {block_h} |  {a[13]} | <--                                --> | {a[3]} | {block_h} {block_h} {block_h}> | {a[5]} |  \n"
-            f" +====+        +----+    \ a                          b /    +---+        +===+  \n"
-            f"                          \                            /                         \n"
-            f"                          +-12-+                   +-2-+                         \n"
-            f"                          |  {a[12]} |<--- c       a --->| {a[2]} |                         \n"
-            f"                          +----+    \         /    +---+                         \n"
-            f"                          /          \       /         \                         \n"
-            f" +=16=+    s   +-14-+    / b           +-1-+          c \    +-4-+   s    +=6=+  \n"
-            f" |  {a[16]} | <{block_h}-{block_h}-{block_h} |  {a[14]} | <--              | {a[1]} |             --> | {a[4]} | {block_h}-{block_h}-{block_h}> | {a[6]} |  \n"
-            f" +====+        +----+                  +---+                 +---+        +===+  \n"
-            f"                                         |                                       \n"
-            f"                                         | b                                     \n"
-            f"                                         v                                       \n"
-            f"                                       +-7-+                                     \n"
-            f"                                       | {a[7]} |                                     \n"
-            f"                                       +---+                                     \n"
-            f"                                       /   \                                     \n"
-            f"                                    c /     \ a                                  \n"
-            f"                                     v       v                                   \n"
-            f"                                 +-8-+       +-9-+                               \n"
-            f"                                 | {a[8]} |       | {a[9]} |                               \n"
-            f"                                 +---+       +---+                               \n"
-            f"                                   {block_v}           {block_v}                                 \n"
-            f"                                 s             {block_v} s                               \n"
-            f"                                   {block_v}           {block_v}                                 \n"
-            f"                                   v           v                                 \n"
-            f"                                +=10=+       +=11=+                              \n"
-            f"                                |  {a[10]} |       |  {a[11]} |                              \n"
-            f"                                +====+       +====+                              \n"
+            f" +-22-+    s   +-15-+    b   +-13-+                                        +-3-+   c    +-5-+   s    +-17-+  \n"
+            f" |  {a[22]} | <{block_h} {block_h} {block_h} |  {a[15]} | <----- |  {a[13]} | <--                                --> | {a[3]} | -----> | {a[5]} | {block_h} {block_h} {block_h}> |  {a[17]} |  \n"
+            f" +----+        +----+        +----+    \ a                          b /    +---+        +---+        +----+  \n"
+            f"                                        \                            /                         \n"
+            f"                                        +-12-+                   +-2-+                         \n"
+            f"                                        |  {a[12]} |<--- c       a --->| {a[2]} |                         \n"
+            f"                                        +----+    \         /    +---+                         \n"
+            f"                                        /          \       /         \                         \n"
+            f" +-21-+    s   +-16-+    a   +-14-+    / b           +-1-+          c \    +-4-+   b    +-6-+   s    +-18-+  \n"
+            f" |  {a[21]} | <{block_h}-{block_h}-{block_h} |  {a[16]} | <----- |  {a[14]} | <--              | {a[1]} |             --> | {a[4]} | -----> | {a[6]} | {block_h}-{block_h}-{block_h}> |  {a[18]} |  \n"
+            f" +----+        +----+        +----+                  +---+                 +---+        +---+        +----+  \n"
+            f"                                                       |                                       \n"
+            f"                                                       | b                                     \n"
+            f"                                                       v                                       \n"
+            f"                                                     +-7-+                                     \n"
+            f"                                                     | {a[7]} |                                     \n"
+            f"                                                     +---+                                     \n"
+            f"                                                     /   \                                     \n"
+            f"                                                  c /     \ a                                  \n"
+            f"                                                   v       v                                   \n"
+            f"                                               +-8-+       +-9-+                               \n"
+            f"                                               | {a[8]} |       | {a[9]} |                               \n"
+            f"                                               +---+       +---+                               \n"
+            f"                                                 |           |                                 \n"
+            f"                                               a |           | c                               \n"
+            f"                                                 v           v                                 \n"
+            f"                                              +-10-+       +-11-+                               \n"
+            f"                                              |  {a[10]} |       |  {a[11]} |                               \n"
+            f"                                              +----+       +----+                               \n"
+            f"                                                 {block_v}           {block_v}                                 \n"
+            f"                                               s             {block_v} s                               \n"
+            f"                                                 {block_v}           {block_v}                                 \n"
+            f"                                                 v           v                                 \n"
+            f"                                              +-20-+       +-19-+                              \n"
+            f"                                              |  {a[20]} |       |  {a[19]} |                              \n"
+            f"                                              +----+       +----+                              \n"
         )
         time.sleep(1)
         clear_output()
