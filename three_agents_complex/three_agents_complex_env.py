@@ -10,7 +10,7 @@ gym.register(
 )
 
 class ThreeAgentsComplexEnv(gym.Env):
-    COMMUNICATION_COST = 10
+    COMMUNICATION_COST = 30
     PENALTY = 500
     
     m_L_transitions = {
@@ -73,13 +73,9 @@ class ThreeAgentsComplexEnv(gym.Env):
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         
-        self.system_state = 1
-        self.agent_1_state = 1
-        self.agent_2_state = 1
-        self.agent_3_state = 1
+        self.system_state, self.agent_1_state, self.agent_2_state, self.agent_3_state = 1, 1, 1, 1
+        
         self.word_index=0
-        
-        
         
         if self.string_mode == 'training':
             self.word = self.word_generator.generate_training_word()+'$'
@@ -90,15 +86,18 @@ class ThreeAgentsComplexEnv(gym.Env):
             
         elif self.string_mode == 'simulation':
             self.word = self.word_generator.generate_simulation_word()+'$'
+            self.curr_event = self.word[self.word_index]
+            
             if self.render_mode == 'human':
                 print(f"\n===========New Simulation=========== \nSimulation word: {self.word}")
                 self.simulate()
             
-            self.curr_event = self.word[self.word_index]
             
             if self.curr_event == 'd':
                 self.v_transition(['d', '', '', ''])
-                self.render()
+                if self.render_mode == 'human':
+                    self.render()
+                    self.simulate()
                 
                 self.word_index += 1
         
@@ -123,16 +122,17 @@ class ThreeAgentsComplexEnv(gym.Env):
         vector_label = [0,0,0,0]
         
         # Determine vector label based on communication action and current event
-
         if agent_id==13:
             communicate_1, communicate_2 = communicate
+            
+            # print(communicate_1, communicate_2)
+            
             vector_label_1 = [1,1, communicate_1, 1]
             vector_label_2 = [1,1, communicate_2, 1]
             vector_label = np.logical_or(vector_label_1, vector_label_2).astype(int)
             communication_cost_1 = -1*communicate_1*self.COMMUNICATION_COST
             communication_cost_2 = -1*communicate_2*self.COMMUNICATION_COST
             communication_cost = communication_cost_1 , communication_cost_2
-        
         else:
             if agent_id == 1:
                 vector_label = [1,1,communicate[0], communicate[1]]
@@ -152,12 +152,13 @@ class ThreeAgentsComplexEnv(gym.Env):
         agent_id, communicate = action
         reward = 0
         terminated = False
+        simulation_result = False
         
         if len(communicate) !=2:
             raise ValueError("Communication action must be a list of two binary values.")
         
-        if self.string_mode == 'simulation' or self.string_mode == 'stats':
-            self.simulation_step(action)
+        # if self.string_mode == 'simulation' or self.string_mode == 'stats':
+        #     self.simulation_step(action)
         
         vector_label, communication_cost = self.get_vector_label_and_communication_cost_from_action(communicate, agent_id)
         
@@ -174,31 +175,91 @@ class ThreeAgentsComplexEnv(gym.Env):
             receive_2 = vector_label[agents[1]]==self.curr_event
             
             self.render(agent_id, receive_1, agents[0], agent_id, receive_2, agents[1])
+        
         elif self.render_mode == 'human' and agent_id == 13:
             communicate_1, communicate_2 = communicate
             self.render('1', communicate_1, '2', '3', communicate_2, '2')
+            
+        if self.string_mode == 'simulation' and self.render_mode == 'human':
+            self.simulate()
         
+        # Updating the current event to the next event in the word
         self.word_index += 1
         self.curr_event = self.word[self.word_index]
         
-        if self.curr_event == 's':
-            self.v_transition(['s', 's', 's', 's'])
-            self.render()
+        # State transition for completely unobservable event 'd' (Only applied when simulation/stats mode)
+        if self.curr_event == 'd':
+            self.v_transition(['d', '', '', ''])
+            
+            if self.render_mode == 'human':
+                self.render()
             
             self.word_index += 1
             self.curr_event = self.word[self.word_index]
         
-        # Check Termination and penalized states
-        if self.system_state in [8,9] and self.agent_2_state == -1:
-            terminated = True
-            reward = -self.PENALTY
-        elif self.curr_event == '$':
-            terminated = True
+        # State transition for 's' for training mode
+        if self.curr_event == 's' and self.string_mode == 'training':
+            self.v_transition(['s', 's', 's', 's'])
+            if self.render_mode == 'human':
+                self.render()
+            
+            # Updating current event to '$' indicating end of the word
+            self.word_index += 1
+            self.curr_event = self.word[self.word_index]
+            
+            # Check Termination and penalized states
+            if self.system_state in [8,9] and self.agent_2_state == -1:
+                terminated = True
+                reward = -self.PENALTY
+            elif self.curr_event == '$':
+                terminated = True
+            
+        # State transition for 's' for simulation or stats mode
+        if self.curr_event == 's' and (self.string_mode == 'simulation' or self.string_mode == 'stats'):
+            
+            # If agent 2 think it is in state 6, then it disables 's'
+            agent_2_disable = self.agent_2_state == 6
+            
+            if not (agent_2_disable):
+                self.v_transition(['s', 's', 's', 's'])
+                
+            if self.render_mode == 'human':
+                self.render()
+                self.simulate(agent_2_disable=agent_2_disable)
+            
+            # Updating current event to '$' indicating end of the word
+            self.word_index += 1
+            self.curr_event = self.word[self.word_index]
+            
+            
+            # Check simulation results based on system state and agent 2's disable status
+            if self.system_state == 9 and not (agent_2_disable):
+                simulation_result = True
+            
+            if self.system_state == 8 and (agent_2_disable):
+                simulation_result = True
+        
+            # if self.curr_event == '$':
+            #     terminated = True
+            #     if not simulation_result:
+            #         reward = -self.PENALTY
+            
+            if self.system_state in [8,9] and self.agent_2_state == -1:
+                terminated = True
+                reward = -self.PENALTY
+            elif self.curr_event == '$':
+                terminated = True
+        
 
         obs = (self.system_state, self.agent_1_state, self.agent_2_state, self.agent_3_state)
         info = {'curr_event': self.curr_event}
         
-        return np.array(obs, dtype=np.int32), (communication_cost, reward), terminated, False, info
+        if self.string_mode == 'simulation' or self.string_mode == 'stats':
+            truncated = simulation_result
+        else:
+            truncated = False
+        
+        return np.array(obs, dtype=np.int32), (communication_cost, reward), terminated, truncated, info
         
     def render(self, sender_1=None, communicate_1=None, receiver_1=None, sender_2=None, communicate_2=None, receiver_2=None):
         print(f"\nEvent {self.curr_event} occurred")
@@ -213,128 +274,128 @@ class ThreeAgentsComplexEnv(gym.Env):
             print(f"Resulting V structure state: <{self.system_state, self.observer_states[self.agent_1_state], self.observer_states[self.agent_2_state], self.observer_states[self.agent_3_state]}>")
 
 
-    def simulation_step(self, action):
-        agent_id, communicate = action
-        reward = 0
+    # def simulation_step(self, action):
+    #     agent_id, communicate = action
+    #     reward = 0
         
-        terminated = False
+    #     terminated = False
         
-        vector_label = [0,0,0,0]
+    #     vector_label = [0,0,0,0]
         
-        if agent_id == 1:
-            vector_label = [1,1,communicate[0], communicate[1]]
-        if agent_id == 2:
-            vector_label = [1,communicate[0],1, communicate[1]]
-        if agent_id == 3:
-            vector_label = [1,communicate[0], communicate[1],1]
+    #     if agent_id == 1:
+    #         vector_label = [1,1,communicate[0], communicate[1]]
+    #     if agent_id == 2:
+    #         vector_label = [1,communicate[0],1, communicate[1]]
+    #     if agent_id == 3:
+    #         vector_label = [1,communicate[0], communicate[1],1]
         
-        if agent_id==13:
-            communicate_1, communicate_2 = communicate
-            vector_label_1 = [1,1, communicate_1, 1]
-            vector_label_2 = [1,1, communicate_2, 1]
-            vector_label = np.logical_or(vector_label_1, vector_label_2).astype(int)
+    #     if agent_id==13:
+    #         communicate_1, communicate_2 = communicate
+    #         vector_label_1 = [1,1, communicate_1, 1]
+    #         vector_label_2 = [1,1, communicate_2, 1]
+    #         vector_label = np.logical_or(vector_label_1, vector_label_2).astype(int)
         
-        vector_label = [self.curr_event if vector_label[i]==1 else '' for i in range(4)]
+    #     vector_label = [self.curr_event if vector_label[i]==1 else '' for i in range(4)]
         
-        self.v_transition(vector_label)
+    #     self.v_transition(vector_label)
         
-        if agent_id == 13:
-            communication_cost_1 = -1*communicate_1*self.COMMUNICATION_COST
-            communication_cost_2 = -1*communicate_2*self.COMMUNICATION_COST
-        else:
-            communication_cost_1 = -1*sum(communicate)*self.COMMUNICATION_COST
+    #     if agent_id == 13:
+    #         communication_cost_1 = -1*communicate_1*self.COMMUNICATION_COST
+    #         communication_cost_2 = -1*communicate_2*self.COMMUNICATION_COST
+    #     else:
+    #         communication_cost_1 = -1*sum(communicate)*self.COMMUNICATION_COST
         
-        if self.render_mode == 'human' and agent_id != 13:
-            agents = [1,2,3]
+    #     if self.render_mode == 'human' and agent_id != 13:
+    #         agents = [1,2,3]
             
-            agents.remove(agent_id)
+    #         agents.remove(agent_id)
             
-            receive_1 = vector_label[agents[0]]==self.curr_event
-            receive_2 = vector_label[agents[1]]==self.curr_event
+    #         receive_1 = vector_label[agents[0]]==self.curr_event
+    #         receive_2 = vector_label[agents[1]]==self.curr_event
             
-            print(f"\nEvent: {self.curr_event} occurred.")
-            print(f"Agent {agent_id} {'communicated' if receive_1 else 'did not communicate'} '{self.curr_event}' to Agent {agents[0]}")
-            print(f"Agent {agent_id} {'communicated' if receive_2 else 'did not communicate'} '{self.curr_event}' to Agent {agents[1]}")
-            self.render()
+    #         print(f"\nEvent: {self.curr_event} occurred.")
+    #         print(f"Agent {agent_id} {'communicated' if receive_1 else 'did not communicate'} '{self.curr_event}' to Agent {agents[0]}")
+    #         print(f"Agent {agent_id} {'communicated' if receive_2 else 'did not communicate'} '{self.curr_event}' to Agent {agents[1]}")
+    #         self.render()
     
 
-        if self.render_mode == 'human' and agent_id == 13:
-            print(f"\nEvent 'x' occurred")
-            print(f"Agent 1 {'communicated' if communicate_1 else 'did not communicate'} 'x' to Agent 2")
-            print(f"Agent 3 {'communicated' if communicate_2 else 'did not communicate'} 'x' to Agent 2")
-            self.render()
+    #     if self.render_mode == 'human' and agent_id == 13:
+    #         print(f"\nEvent 'x' occurred")
+    #         print(f"Agent 1 {'communicated' if communicate_1 else 'did not communicate'} 'x' to Agent 2")
+    #         print(f"Agent 3 {'communicated' if communicate_2 else 'did not communicate'} 'x' to Agent 2")
+    #         self.render()
     
-        self.word_index += 1
-        self.curr_event = self.word[self.word_index]
+    #     self.word_index += 1
+    #     self.curr_event = self.word[self.word_index]
         
-        if self.curr_event == 'd':
-            self.v_transition(['d', '', '', ''])
+    #     if self.curr_event == 'd':
+    #         self.v_transition(['d', '', '', ''])
             
-            if self.render_mode == 'human':
-                print("Event d occurred")
-                self.render()
+    #         if self.render_mode == 'human':
+    #             print("Event d occurred")
+    #             self.render()
             
-            self.word_index += 1
-            self.curr_event = self.word[self.word_index]
+    #         self.word_index += 1
+    #         self.curr_event = self.word[self.word_index]
             
         
-        elif self.curr_event == 's':
+    #     elif self.curr_event == 's':
             
-            agent_1_disable = self.agent_1_state == 6
-            agent_2_disable = self.agent_2_state == 6
-            agent_3_disable = self.agent_3_state == 6
+    #         agent_1_disable = self.agent_1_state == 6
+    #         agent_2_disable = self.agent_2_state == 6
+    #         agent_3_disable = self.agent_3_state == 6
             
-            if not (agent_1_disable or agent_2_disable or agent_3_disable):
-                self.v_transition(['s', 's', 's', 's'])
+    #         if not (agent_2_disable):
+    #             self.v_transition(['s', 's', 's', 's'])
                 
             
-            if self.render_mode == 'human':
-                print("Event s occurred")
-                self.render()
-                self.simulate(agent_1_disable=agent_1_disable, agent_2_disable=agent_2_disable, agent_3_disable=agent_3_disable)
+    #         if self.render_mode == 'human':
+    #             self.render()
+    #             self.simulate(agent_1_disable=agent_1_disable, agent_2_disable=agent_2_disable, agent_3_disable=agent_3_disable)
             
-            self.word_index += 1
-            self.curr_event = self.word[self.word_index]
-            if self.system_state == 9 and not (agent_1_disable or agent_2_disable or agent_3_disable):
-                simulation_result = True
+    #         self.word_index += 1
+    #         self.curr_event = self.word[self.word_index]
+    #         if self.system_state == 9 and not (agent_1_disable or agent_2_disable or agent_3_disable):
+    #             simulation_result = True
             
-            if self.system_state == 8 and (agent_1_disable or agent_2_disable or agent_3_disable):
-                simulation_result = True
+    #         if self.system_state == 8 and (agent_1_disable or agent_2_disable or agent_3_disable):
+    #             simulation_result = True
         
-            if self.curr_event == '$':
-                terminated = True
-                if not simulation_result:
-                    reward = -self.PENALTY
+    #         if self.curr_event == '$':
+    #             terminated = True
+    #             if not simulation_result:
+    #                 reward = -self.PENALTY
 
-        obs = (self.system_state, self.agent_1_state, self.agent_2_state, self.agent_3_state)
-        info = {'curr_event': self.curr_event}
+    #     obs = (self.system_state, self.agent_1_state, self.agent_2_state, self.agent_3_state)
+    #     info = {'curr_event': self.curr_event}
         
-        if agent_id == 13:
-            communication_cost = communication_cost_1 , communication_cost_2
-        else:
-            communication_cost = communication_cost_1
+    #     if agent_id == 13:
+    #         communication_cost = communication_cost_1 , communication_cost_2
+    #     else:
+    #         communication_cost = communication_cost_1
         
-        return np.array(obs, dtype=np.int32), (communication_cost, reward), terminated, False, info   
+    #     return np.array(obs, dtype=np.int32), (communication_cost, reward), terminated, False, info   
     
-    def simulate(self, agent_1_disable=False, agent_2_disable=False, agent_3_disable=False):
+    def simulate(self, agent_2_disable=False):
         a = [" " for _ in range(10)]
         a[self.system_state] = "#"
         
         block = "|"
         
         if self.curr_event == 's':
-            block = "X"
+            if agent_2_disable:
+                block = "X"
             
-            if self.system_state == 9 and not (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state == 9 and not (agent_2_disable):
                 print("\nSuccessfully enabled s")
             
-            if self.system_state == 9 and (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state == 9 and (agent_2_disable):
                 print("\nFailed to enable s")
             
-            if self.system_state == 8 and (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state == 6 and (agent_2_disable):
                 print("\nSuccessfully disabled s")
                 
-            if self.system_state == 8 and not (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state == 8 and not (agent_2_disable):
                 print("\nFailed to disable s")
         
         print(

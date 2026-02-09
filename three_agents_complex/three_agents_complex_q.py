@@ -8,6 +8,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 FOLDER_NAME = 'three_agents_complex'
 
+
 S_1={
     (1 ,'a', False, False):0,
     (2 ,'a', False, False):1,
@@ -224,32 +225,54 @@ ACTIONS = {
     3:[1,1],
 }
 
+ACTIONS_INV ={
+    (0,0):0,
+    (0,1):1,
+    (1,0):2,
+    (1,1):3,
+}
+
+
 def get_action(q_table, agent_j_in_dead_state, agent_k_in_dead_state, row_num, epsilon):
-    
     # Both agents are in dead state, only action [0,0] is possible
     if agent_j_in_dead_state and agent_k_in_dead_state:
         return 0  
     
-    # If one agent is in dead state, limit actions for that agent
-    elif agent_j_in_dead_state or agent_k_in_dead_state: 
+    # If one agent is in dead state, limit actions for that agent 
+    elif agent_j_in_dead_state:
         if random.uniform(0, 1) < epsilon:
-            return random.randint(0, 1) if agent_j_in_dead_state else random.choice([0,2])  # Explore
+            return random.randint(0, 1)  # Explore
         else:
-            if agent_j_in_dead_state:
-                return np.argmax(q_table[row_num][[0,1]])  # Exploit
-            else:
-                return np.argmax(q_table[row_num][[0,2]])  # Exploit
-    
+            return np.argmax(q_table[row_num][[0,1]])  # Exploit
+    elif agent_k_in_dead_state:
+        if random.uniform(0, 1) < epsilon:
+            return  random.choice([0,2])  # Explore
+        else:
+            return  2*np.argmax(q_table[row_num][[0,2]])  # Exploit
+
     # Neither agent is in dead state, all actions possible
     if random.uniform(0, 1) < epsilon:
         return random.randint(0, 3)  # Explore
     else:
-        return  np.argmax(q_table[row_num])  # Exploit
+        return np.argmax(q_table[row_num])  # Exploit
     
 def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, epsilon=0.1, print_process=False):
     q_1 = np.zeros((len(S_1), env.action_space.n))
     q_2 = np.zeros((len(S_2), env.action_space.n))
     q_3 = np.zeros((len(S_3), env.action_space.n))
+    
+    # q_1 = [q_1[i] if i<40 else [0,0,None, None] for i in range(len(S_1))]
+    
+    action_dict = {
+        (0,2000):[0,0,0,0],
+        (2000,4000):[0,0,0,0],
+        (4000,6000):[0,0,0,0],
+        (6000,8000):[0,0,0,0],
+        (8000,10000):[0,0,0,0],
+    }
+    
+    count =0
+    
     for episode in range(epochs):
         if (print_process and episode%100==0):
             print(str(100*episode/epochs)+"%","done" , end="\r")
@@ -282,7 +305,14 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, epsilon=0.1, print_pro
                     q_1[prev_s_1][a1_action] += alpha * (reward_1 + gamma * np.max(q_1[s_1]) - q_1[prev_s_1][a1_action])
                     reward_1 = 0
                 
+                flag2 = s_1 ==29
+                
                 a1_action = get_action(q_1, agent_j_in_dead_state=agent_2_in_dead_state, agent_k_in_dead_state=agent_3_in_dead_state, row_num=s_1, epsilon=epsilon)
+                
+                # if s_1 == 29 and a1_action == 1:
+                #     print((agent_1_belief, curr_event, agent_2_in_dead_state, agent_3_in_dead_state))
+                #     print(flag)
+                #     count += 1
                 
                 config, reward, terminated, _, info = env.step((agent_id, ACTIONS[a1_action]))
                 
@@ -290,13 +320,7 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, epsilon=0.1, print_pro
                 
                 _, agent_1_belief, agent_2_belief, agent_3_belief = config
                 
-                agent_2_in_dead_state = agent_2_belief == -1
-                
-                agent_3_in_dead_state = agent_3_belief == -1
-                
                 reward_1 += comm_cost
-                
-                curr_event=info['curr_event']
                 
                 prev_s_1 = s_1
                 
@@ -364,10 +388,29 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, epsilon=0.1, print_pro
                     a1_action = 0
                     a3_action = 0
                 else:
-                    # Usual Epsilon-Greedy, assuming they are sending the communication to each other, so decide to communicate to agent 2 only or not
-                    a1_action = get_action(q_1, agent_j_in_dead_state=agent_2_in_dead_state, agent_k_in_dead_state=True, row_num=s_1, epsilon=epsilon)
-                    a3_action = get_action(q_3, agent_j_in_dead_state=True, agent_k_in_dead_state=agent_2_in_dead_state, row_num=s_3, epsilon=epsilon)
+                    # Usual Epsilon-Greedy, assuming they are sending the communication to each other, so decide to communicate to agent 2 only or not. Thus, we use binary action 0,1
                     
+                    if np.random.rand() < epsilon:
+                        a1_action = np.argmin(q_1[s_1][[0,1]])  # Explore: choose action with lower Q-value
+                    else:
+                        a1_action = np.argmax(q_1[s_1][[0,1]])  # Exploit: choose action with higher Q-value
+
+                    if np.random.rand() < epsilon:
+                        a3_action = np.argmin(q_3[s_3][[0,1]])  # Explore: choose action with lower Q-value
+                    else:
+                        a3_action = np.argmax(q_3[s_3][[0,1]])  # Exploit: choose action with higher Q-value
+                        
+                    
+                a_joint_action = ACTIONS_INV[(a1_action, a3_action)]
+                
+                for key in action_dict:
+                    if episode in range(key[0], key[1]):
+                        action_dict[key][a_joint_action] += 1
+                
+                # if a1_action == 
+                # count[0] += a1_action
+                # count[1] += a3_action
+                
                 joint_action = (a1_action, a3_action)
                 
                 config, reward, terminated, _, info = env.step((agent_id, joint_action))
@@ -406,9 +449,22 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, epsilon=0.1, print_pro
         # print()
         # print(a1_action, a2_action, a3_action)
         # print(reward_1, reward_2, reward_3)
-    
+    print()
+    print(count)
+    # print(action_dict)
     return q_1, q_2, q_3
 
-env = gym.make('ThreeAgentsComplexEnv-v0', render_mode='human', string_mode="training")
 
-q_1, q_2, q_3 = q_training(env, epochs=10, alpha=0.001, gamma=0.1, epsilon=0.1, print_process=True)
+# env = gym.make('ThreeAgentsComplexEnv-v0', render_mode=None, string_mode="training")
+# q_1, q_2, q_3 = q_training(env, epochs=100000, alpha=0.01, gamma=0.9, epsilon=0.1, print_process=True)
+
+# q_1_df = pd.DataFrame(q_1, columns=["[X,X]", "[X,O]", "[O,X]", "[O,O]"])
+# q_2_df = pd.DataFrame(q_2, columns=["[X,X]", "[X,O]", "[O,X]", "[O,O]"])
+# q_3_df = pd.DataFrame(q_3, columns=["[X,X]", "[X,O]", "[O,X]", "[O,O]"])
+
+# q_1_df.to_csv(f"{FOLDER_NAME}/three_agents_complex_q1.csv", index=False)
+# q_2_df.to_csv(f"{FOLDER_NAME}/three_agents_complex_q2.csv", index=False)
+# q_3_df.to_csv(f"{FOLDER_NAME}/three_agents_complex_q3.csv", index=False)
+
+
+

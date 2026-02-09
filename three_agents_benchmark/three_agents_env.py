@@ -310,7 +310,7 @@ class ThreeAgentsEnv(gym.Env):
             if self.system_state in [5,10,15] and (agent_1_disable or agent_2_disable or agent_3_disable):
                 print("\nSuccessfully disabled the event\n")
                 
-            if self.system_state in [5,10,15] and not (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state in [17,20,22] and not (agent_1_disable or agent_2_disable or agent_3_disable):
                 print("\nFailed to disable the event\n")
         
         print(
