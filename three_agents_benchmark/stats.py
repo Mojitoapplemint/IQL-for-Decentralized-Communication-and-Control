@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import gymnasium as gym
-import sys
-sys.path.insert(0, './problem_w_unobservable_events')
 import three_agents_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)

@@ -44,3 +44,21 @@ class WordGenerator:
         word += 's'
         
         return word
+    
+
+import pandas as pd
+generator = WordGenerator(max_star=5)
+
+testing_pool = []
+
+count = 0
+
+while count<1000:
+    word = generator.generate_simulation_word()
+    if word not in testing_pool:
+        testing_pool.append(word)
+        count+=1
+
+testing_pool_df = pd.DataFrame(testing_pool, columns=['word'])
+
+testing_pool_df.to_csv('three_agents_complex/words_for_stats.csv', index=False)

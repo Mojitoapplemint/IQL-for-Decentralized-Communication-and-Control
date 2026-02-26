@@ -271,7 +271,7 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, epsilon=0.1, print_pro
         (8000,10000):[0,0,0,0],
     }
     
-    count =0
+    count =0,0
     
     for episode in range(epochs):
         if (print_process and episode%100==0):
@@ -399,8 +399,12 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, epsilon=0.1, print_pro
                         a3_action = np.argmin(q_3[s_3][[0,1]])  # Explore: choose action with lower Q-value
                     else:
                         a3_action = np.argmax(q_3[s_3][[0,1]])  # Exploit: choose action with higher Q-value
-                        
-                    
+                
+                if agent_2_in_dead_state and a1_action == 1:      
+                    count[0] += 1
+                if agent_2_in_dead_state and a3_action == 1:
+                    count[1] += 1  
+                
                 a_joint_action = ACTIONS_INV[(a1_action, a3_action)]
                 
                 for key in action_dict:
@@ -415,6 +419,8 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, epsilon=0.1, print_pro
                 
                 config, reward, terminated, _, info = env.step((agent_id, joint_action))
                 
+                a1_action = 2*a1_action
+                        
                 comm_cost, penalty = reward
                 
                 comm_cost_1 , comm_cost_3 = comm_cost

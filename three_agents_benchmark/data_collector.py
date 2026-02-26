@@ -121,11 +121,11 @@ for i in range(session_count):
         a2_protocol = [np.argmax(q_2[i]) for i in range(q_2.shape[0])]
         a3_protocol = [np.argmax(q_3[i]) for i in range(q_3.shape[0])]
         
-        protocol_kay = (tuple(a1_protocol), tuple(a2_protocol), tuple(a3_protocol))
-        if success_dict.get(protocol_kay) is None:
-            success_dict[protocol_kay] = 1
+        protocol_key = (tuple(a1_protocol), tuple(a2_protocol), tuple(a3_protocol))
+        if success_dict.get(protocol_key) is None:
+            success_dict[protocol_key] = 1
         else:
-            success_dict[protocol_kay] += 1
+            success_dict[protocol_key] += 1
 
 print(fail_count)
 

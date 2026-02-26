@@ -1,10 +1,10 @@
 import numpy as np
 import gymnasium as gym
 import pandas as pd
-import three_agents_complex_env
+import three_agents_exp.three_agents_exp_env as three_agents_exp_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-from three_agents_complex_q import q_training, get_action, S_1, S_2, S_3, ACTIONS, FOLDER_NAME
+from three_agents_exp.three_agents_exp_q import q_training, get_action, S_1, S_2, S_3, ACTIONS, FOLDER_NAME
 
 successful_protocol_dict = {}
 result_dict = {}
@@ -67,33 +67,7 @@ for i in range(session_count):
                 
                 v_state, reward, terminated, simulation_result, info = env.step((agent_id, ACTIONS[a3_action]))
 
-            
-            if curr_event == 'x':
-                agent_id = 13
-                
-                s_1 = S_1[(agent_1_belief, curr_event, agent_2_in_dead_state, agent_3_in_dead_state)]   
-                s_3 = S_3[(agent_3_belief, curr_event, agent_1_in_dead_state, agent_2_in_dead_state)]
-                
-                if agent_2_in_dead_state:
-                    a1_action = 0
-                    a3_action = 0
-                else:
-                    a1_action = np.argmax(q_1[s_1][[0,1]])            
-                    a3_action = np.argmax(q_3[s_3][[0,1]])            
-                
-                joint_action = (a1_action, a3_action)
-                
-                v_state, reward, terminated, simulation_result, info = env.step((agent_id, joint_action))
-            
-            _, agent_1_belief, agent_2_belief, agent_3_belief = v_state
-            
-            agent_1_in_dead_state = agent_1_belief == -1
-            
-            agent_2_in_dead_state = agent_2_belief == -1
-            
-            agent_3_in_dead_state = agent_3_belief == -1
-            
-            curr_event=info['curr_event']
+
     
         if not simulation_result:
             fail_count += 1

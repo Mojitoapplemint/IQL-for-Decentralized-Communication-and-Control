@@ -1,8 +1,9 @@
 import gymnasium as gym
 import numpy as np
 import time
-from IPython.display import clear_output
 from word_generator import WordGenerator
+from IPython.display import clear_output
+import pandas as pd
 
 gym.register(
     id='ThreeAgentsComplexEnv-v0',
@@ -69,6 +70,9 @@ class ThreeAgentsComplexEnv(gym.Env):
         self.string_mode = string_mode
         
         self.word_generator = WordGenerator(max_star=max_star)
+        
+        self.words_for_stats = pd.read_csv('three_agents_complex/words_for_stats.csv')['word'].tolist()
+        self.words_for_stats_index = 0
     
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
@@ -86,21 +90,26 @@ class ThreeAgentsComplexEnv(gym.Env):
             
         elif self.string_mode == 'simulation':
             self.word = self.word_generator.generate_simulation_word()+'$'
-            self.curr_event = self.word[self.word_index]
             
             if self.render_mode == 'human':
                 print(f"\n===========New Simulation=========== \nSimulation word: {self.word}")
                 self.simulate()
-            
-            
-            if self.curr_event == 'd':
-                self.v_transition(['d', '', '', ''])
-                if self.render_mode == 'human':
-                    self.render()
-                    self.simulate()
-                
-                self.word_index += 1
         
+        elif self.string_mode == 'stats':
+            self.word = self.words_for_stats[self.words_for_stats_index] + '$'
+            self.words_for_stats_index += 1
+        
+        self.curr_event = self.word[self.word_index]
+        
+        if self.curr_event == 'd':
+            self.v_transition(['d', '', '', ''])
+            if self.render_mode == 'human':
+                self.render()
+                self.simulate()
+            
+            self.word_index += 1
+    
+    
         self.curr_event = self.word[self.word_index]
                 
         obs = (self.system_state, self.agent_1_state, self.agent_2_state, self.agent_3_state)
@@ -236,7 +245,7 @@ class ThreeAgentsComplexEnv(gym.Env):
             if self.system_state == 9 and not (agent_2_disable):
                 simulation_result = True
             
-            if self.system_state == 8 and (agent_2_disable):
+            if self.system_state == 6 and (agent_2_disable):
                 simulation_result = True
         
             # if self.curr_event == '$':

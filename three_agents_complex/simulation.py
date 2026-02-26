@@ -34,6 +34,8 @@ while not terminated:
     if curr_event == 'a':
         agent_id = 1        
         
+        s_1 = S_1[(agent_1_belief,curr_event, agent_2_in_dead_state, agent_3_in_dead_state)]
+        
         # Choosing action only based on the Q value; never explore
         a1_action = get_action(q_1, agent_j_in_dead_state=agent_2_in_dead_state, agent_k_in_dead_state=agent_3_in_dead_state, row_num=s_1, epsilon=0)
         
@@ -50,6 +52,8 @@ while not terminated:
     if curr_event == 'b':
         agent_id = 2
         
+        s_2 = S_2[(agent_2_belief,curr_event, agent_1_in_dead_state, agent_3_in_dead_state)]
+        
         # Choosing action only based on the Q value; never explore
         a2_action = get_action(q_2, agent_j_in_dead_state=agent_1_in_dead_state, agent_k_in_dead_state=agent_3_in_dead_state, row_num=s_2, epsilon=0)
         
@@ -63,6 +67,8 @@ while not terminated:
         
     if curr_event == 'c':
         agent_id = 3
+        
+        s_3 = S_3[(agent_3_belief, curr_event, agent_1_in_dead_state, agent_2_in_dead_state)]
         
         # Choosing action only based on the Q value; never explore
         a3_action = get_action(q_3, agent_j_in_dead_state=agent_1_in_dead_state, agent_k_in_dead_state=agent_2_in_dead_state, row_num=s_3, epsilon=0)
@@ -78,6 +84,9 @@ while not terminated:
     
     if curr_event == 'x':
         agent_id = 13
+        
+        s_1 = S_1[(agent_1_belief, curr_event, agent_2_in_dead_state, agent_3_in_dead_state)]   
+        s_3 = S_3[(agent_3_belief, curr_event, agent_1_in_dead_state, agent_2_in_dead_state)]
         
         if agent_2_in_dead_state:
             a1_action = 0
