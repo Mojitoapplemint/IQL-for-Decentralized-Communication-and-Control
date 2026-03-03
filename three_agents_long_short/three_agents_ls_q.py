@@ -2,11 +2,12 @@ import numpy as np
 import gymnasium as gym
 import pandas as pd
 import random
-import three_agents_exp_env as three_agents_exp_env
+import three_agents_ls_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
-FOLDER_NAME = 'three_agents_exp'
+
+FOLDER_NAME = 'three_agents_long_short'
 
 S_1 = {
     (1,'a', False, False):1,
@@ -259,12 +260,15 @@ ACTIONS_INV ={
     (1,1):3,
 }
 
+
+
 def epsilon_decay(min_epsilon, episode, max_epochs):
-    if episode <= 0.1*max_epochs:
+    if episode <= 0.2*max_epochs:
         return 1.0
     
     initial_epsilon = 1.0
     return max(min_epsilon, initial_epsilon-(episode/(0.9*max_epochs)))
+    # return min_epsilon
 
 def get_action(q_table, agent_j_in_dead_state, agent_k_in_dead_state, row_num, epsilon):
     # Both agents are in dead state, only action [0,0] is possible
@@ -288,11 +292,16 @@ def get_action(q_table, agent_j_in_dead_state, agent_k_in_dead_state, row_num, e
         return random.randint(0, 3)  # Explore
     else:
         return np.argmax(q_table[row_num])  # Exploit
-    
+
+device = "cpu"
+
+
 def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, min_epsilon=0.1, print_process=False):
     q_1 = np.zeros((len(S_1), env.action_space.n))
     # q_2 = np.zeros((len(S_2), env.action_space.n))
     q_3 = np.zeros((len(S_3), env.action_space.n))
+    
+    
     
     a1_action_count = [0,0,0,0]
     a3_action_count = [0,0,0,0]
@@ -301,23 +310,21 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, min_epsilon=0.1, print
         if (print_process and episode%100==0):
             print(str(100*episode/epochs)+"%","done" , end="\r")
         
-            
-        
         config, info = env.reset()
         
         curr_event=info['curr_event']
         
         _, agent_1_belief, agent_2_belief, agent_3_belief = config
         
-        prev_s_1, prev_s_2, prev_s_3 = -1, -1, -1
+        s_1, s_3 = -1, -1
         
         terminated = False
         
-        reward_1, reward_2, reward_3 = 0, 0, 0
+        reward_1, reward_3 = 0, 0
         
         agent_1_in_dead_state, agent_2_in_dead_state, agent_3_in_dead_state = False, False, False
         
-        a1_action, a2_action, a3_action = None, None, None
+        a1_action, a3_action = None, None
 
         epsilon = epsilon_decay(min_epsilon, episode, epochs)
         # if (episode%10000==0):
@@ -327,14 +334,15 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, min_epsilon=0.1, print
             if curr_event in A1_OBS:
                 agent_id = 1
                 
-                s_1 = S_1[(agent_1_belief, curr_event, agent_2_in_dead_state, agent_3_in_dead_state)]
+                next_s_1 = S_1[(agent_1_belief, curr_event, agent_2_in_dead_state, agent_3_in_dead_state)]
                 
-                if prev_s_1 != -1 :
+                if s_1 != -1 :
                     # Q-value update for agent 1
-                    q_1[prev_s_1][a1_action] += alpha * (reward_1 + gamma * np.max(q_1[s_1]) - q_1[prev_s_1][a1_action])
+                    q_1[s_1][a1_action] += alpha * (reward_1 + gamma * np.max(q_1[next_s_1]) - q_1[s_1][a1_action])
+
                     reward_1 = 0
                                 
-                a1_action = get_action(q_1, agent_j_in_dead_state=agent_2_in_dead_state, agent_k_in_dead_state=agent_3_in_dead_state, row_num=s_1, epsilon=epsilon)
+                a1_action = get_action(q_1, agent_j_in_dead_state=agent_2_in_dead_state, agent_k_in_dead_state=agent_3_in_dead_state, row_num=next_s_1, epsilon=epsilon)
 
                 a1_action_count[a1_action] += 1
                 
@@ -346,42 +354,19 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, min_epsilon=0.1, print
                 
                 reward_1 += comm_cost
                 
-                prev_s_1 = s_1
-                
-            # if curr_event in A2_OBS:
-            #     agent_id = 2
-                
-            #     s_2 = S_2[(agent_2_belief, curr_event, agent_1_in_dead_state, agent_3_in_dead_state)]
-                
-            #     if prev_s_2 != -1 :
-            #         # Q-value update for agent 2
-            #         q_2[prev_s_2][a2_action] += alpha * (reward_2 + gamma * np.max(q_2[s_2]) - q_2[prev_s_2][a2_action])
-            #         reward_2 = 0
-                
-            #     a2_action = get_action(q_2, agent_j_in_dead_state=agent_1_in_dead_state, agent_k_in_dead_state=agent_3_in_dead_state, row_num=s_2, epsilon=epsilon)
-                
-            #     config, reward, terminated, _, info = env.step((agent_id, ACTIONS[a2_action]))
-                
-            #     comm_cost, penalty = reward
-                
-            #     _, agent_1_belief, agent_2_belief, agent_3_belief = config
-                
-            #     reward_2 += comm_cost
-                
-            #     prev_s_2 = s_2
+                s_1 = next_s_1
                 
             if curr_event in A3_OBS:
                 agent_id = 3
                
-                s_3 = S_3[(agent_3_belief, curr_event, agent_1_in_dead_state, agent_2_in_dead_state)]
+                next_s_3 = S_3[(agent_3_belief, curr_event, agent_1_in_dead_state, agent_2_in_dead_state)]
                 
-                if prev_s_3 != -1 :
+                if s_3 != -1 :
                     # Q-value update for agent 3
-                    q_3[prev_s_3][a3_action] += alpha * (reward_3 + gamma * np.max(q_3[s_3]) - q_3[prev_s_3][a3_action])
+                    q_3[s_3][a3_action] += alpha * (reward_3 + gamma * np.max(q_3[next_s_3]) - q_3[s_3][a3_action])
                     reward_3 = 0
                 
-                
-                a3_action = get_action(q_3, agent_j_in_dead_state=agent_1_in_dead_state, agent_k_in_dead_state=agent_2_in_dead_state, row_num=s_3, epsilon=epsilon)
+                a3_action = get_action(q_3, agent_j_in_dead_state=agent_1_in_dead_state, agent_k_in_dead_state=agent_2_in_dead_state, row_num=next_s_3, epsilon=epsilon)
                 a3_action_count[a3_action] += 1
                 
                 config, reward, terminated, _, info = env.step((agent_id, ACTIONS[a3_action]))
@@ -392,7 +377,7 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, min_epsilon=0.1, print
                 
                 reward_3 += comm_cost
                 
-                prev_s_3 = s_3
+                s_3 = next_s_3
          
             agent_1_in_dead_state = agent_1_belief == -1
             
@@ -405,15 +390,14 @@ def q_training(env, epochs=10000, alpha = 0.1, gamma=0.1, min_epsilon=0.1, print
         
         # Q-value update for agents who took action
         reward_1 += penalty
-        q_1[prev_s_1][a1_action] += alpha * (reward_1 + gamma * 0 - q_1[prev_s_1][a1_action])
+        q_1[s_1][a1_action] += alpha * (reward_1 + gamma * 0 - q_1[s_1][a1_action])
 
         # reward_2 += penalty
         # q_2[prev_s_2][a2_action] += alpha * (reward_2 + gamma * 0 - q_2[prev_s_2][a2_action])
-
         reward_3 += penalty
-        q_3[prev_s_3][a3_action] += alpha * (reward_3 + gamma * 0 - q_3[prev_s_3][a3_action])
+        q_3[s_3][a3_action] += alpha * (reward_3 + gamma * 0 - q_3[s_3][a3_action])
         
-
+        
     # print(a1_action_count)
     # print(a3_action_count)
     # print(action_dict)

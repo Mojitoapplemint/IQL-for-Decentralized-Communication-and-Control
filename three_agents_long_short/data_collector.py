@@ -1,22 +1,22 @@
 import numpy as np
 import gymnasium as gym
 import pandas as pd
-import three_agents_exp_env
+import three_agents_ls_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-from three_agents_exp_q import S_1, S_3, ACTIONS,A1_OBS, A3_OBS, get_action, q_training, FOLDER_NAME
+from three_agents_ls_q import S_1, S_3, ACTIONS,A1_OBS, A3_OBS, get_action, q_training, FOLDER_NAME
 
 
 successful_protocol_dict = {}
 result_dict = {}
-session_count = 10
+session_count = 100
 for i in range(session_count):
     print(f"{i}/{session_count} done", end="\r")
-    env = gym.make('ThreeAgentsExpEnv-v0', render_mode=None, string_mode="training")
+    env = gym.make('ThreeAgentsLSEnv-v0', render_mode=None, string_mode="training")
     
-    q_1, q_3 = q_training(env, epochs=100000, alpha=0.001, gamma=0.9, min_epsilon=0.1, print_process=False)
+    q_1, q_3 = q_training(env, epochs=100000, alpha=0.001, gamma=0.5, min_epsilon=0.1, print_process=False)
     
-    env = gym.make('ThreeAgentsExpEnv-v0', render_mode=None, string_mode="simulation")
+    env = gym.make('ThreeAgentsLSEnv-v0', render_mode=None, string_mode="simulation")
     
     fail_count = 0
     

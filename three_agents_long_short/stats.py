@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import gymnasium as gym
-import three_agents_exp_env
+import three_agents_long_short.three_agents_ls_env as three_agents_ls_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-from three_agents_exp_q import S_1, S_3, ACTIONS,A1_OBS, A3_OBS, get_action, FOLDER_NAME
+from three_agents_long_short.three_agents_ls_q import S_1, S_3, ACTIONS,A1_OBS, A3_OBS, get_action, FOLDER_NAME
 
 successful_protocols = pd.read_csv(f'{FOLDER_NAME}/successful_protocols.csv')
 # successful_protocols = pd.read_csv('three_agents_benchmark/successful_protocols_with_returns.csv')
@@ -119,7 +119,7 @@ for index, row in successful_protocols.iterrows():
         return_values[2] += a3_return
         
         
-    return_values = [return_values[i]/6 for i in range(3)]
+    return_values = [return_values[i]/4 for i in range(3)]
     return_values[0] = round(return_values[0], 2)
     return_values[1] = round(return_values[1], 2)
     return_values[2] = round(return_values[2], 2)

@@ -2,18 +2,30 @@ import numpy as np
 import gymnasium as gym
 import pandas as pd
 import random
-import three_agents_exp_env as three_agents_exp_env
+import three_agents_long_short.three_agents_ls_env as three_agents_ls_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-from three_agents_exp_q import S_1, S_3, ACTIONS,A1_OBS, A3_OBS, get_action
+from three_agents_long_short.three_agents_ls_q import S_1, S_3, ACTIONS,A1_OBS, A3_OBS, get_action
 
+# q_1 = pd.read_csv('three_agents_exp/three_agents_exp_q1.csv').to_numpy()
+# # q_2 = pd.read_csv('three_agents_exp/three_agents_exp_q2.csv').to_numpy()
+# q_3 = pd.read_csv('three_agents_exp/three_agents_exp_q3.csv').to_numpy()
 
+# q_1 = [0, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# q_3 = [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+q_1 = [0, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+q_3 = [0, 3, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+# q_1 = [0, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+# q_3 = [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
 env = gym.make('ThreeAgentsExpEnv-v0', render_mode=None, string_mode="simulation")
 
 fail_count = 0
-return_values = [0,0,0]
+
+a1_return, a2_return, a3_return = 0, 0, 0
 
 for i in range(4):
     state, info = env.reset()
@@ -30,7 +42,6 @@ for i in range(4):
 
     count = [0,0,0]
 
-    a1_return, a2_return, a3_return = 0, 0, 0
 
     while not terminated:
         if curr_event in A1_OBS:
@@ -39,14 +50,9 @@ for i in range(4):
             s_1 = S_1[(agent_1_belief,curr_event, agent_2_in_dead_state, agent_3_in_dead_state)]
             
             # Choosing action only based on the Q value; never explore
-            if curr_event == 'a' and agent_1_belief == 1:
-                a1_action = 3
-            if curr_event == 'a' and agent_1_belief == 2:
-                a1_action = 3
-            elif curr_event == 'x' and agent_1_belief == 4:
-                a1_action = 2
-            elif curr_event == 'x':
-                a1_action = 0
+            # a1_action = get_action(q_1, agent_j_in_dead_state=agent_2_in_dead_state, agent_k_in_dead_state=agent_3_in_dead_state, row_num=s_1, epsilon=0)
+            
+            a1_action = q_1[s_1]
             
             a1_action = ACTIONS[a1_action]
             
@@ -80,14 +86,9 @@ for i in range(4):
             s_3 = S_3[(agent_3_belief, curr_event, agent_1_in_dead_state, agent_2_in_dead_state)]
             
             # Choosing action only based on the Q value; never explore
-            if curr_event == 'c' and agent_3_belief == 1:
-                a3_action = 3
-            if curr_event == 'c' and agent_3_belief == 3:
-                a3_action = 3
-            elif curr_event == 'y' and agent_3_belief == 5:
-                a3_action = 1
-            elif curr_event == 'y':
-                a3_action = 0
+            # a3_action = get_action(q_3, agent_j_in_dead_state=agent_1_in_dead_state, agent_k_in_dead_state=agent_2_in_dead_state, row_num=s_3, epsilon=0)
+            
+            a3_action = q_3[s_3]
             
             a3_action = ACTIONS[a3_action]
             count[2] +=np.sum(a3_action)
@@ -120,19 +121,9 @@ for i in range(4):
 
     a3_return += penalty
 
-    return_values[0] += a1_return
-    return_values[1] += a2_return
-    return_values[2] += a3_return
+
     # print()
     print(count)
-    print(a1_return, a2_return, a3_return)
+print(a1_return/4, a2_return/4, a3_return/4)
 
 print(f"Failure: {fail_count}")
-    
-    
-return_values = [return_values[i]/6 for i in range(3)]
-return_values[0] = round(return_values[0], 2)
-return_values[1] = round(return_values[1], 2)
-return_values[2] = round(return_values[2], 2)
-
-print(return_values)
