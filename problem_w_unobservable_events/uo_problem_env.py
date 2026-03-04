@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 from IPython.display import clear_output
 import time
-from word_generator import TrainingWordGenerator
+from word_generator import WordGenerator
 import pandas as pd
 
 gym.register(
@@ -12,8 +12,9 @@ gym.register(
 
 class UOEnv(gym.Env):
     COMMUNICATE_COST = 10
-    PENALTY_11 = 100
-    PENALTY_9 = 100
+    # PENALTY_11 = 500 # For Exp 1
+    PENALTY_11 = 100 # For Exp 2
+    PENALTY_9 = 500
     
     # symbol replacement
     #    a1 -> a,   c1 -> c
@@ -108,7 +109,7 @@ class UOEnv(gym.Env):
         -1:{'a':-1, 'c':-1, 'x':-1, 'y':-1, 'z':-1, 's':-1, 't':-1, 'r':-1}
     }
     
-    metadata = {'render_modes': ['human'], 'string_modes': ['training', 'simulation', 'stats']}
+    metadata = {'render_modes': ['human'], 'string_modes': ['training', 'simulation']}
     
     def __init__(self, render_mode=None, string_mode="training", max_star=5):
         self.action_space = gym.spaces.Discrete(2)  # Actions: 0: communicate, 1:don't communicate
@@ -119,12 +120,11 @@ class UOEnv(gym.Env):
         self.render_mode = render_mode
         self.string_mode = string_mode
         
-        self.string_generator = TrainingWordGenerator(max_star=max_star)
+        self.string_generator = WordGenerator(max_star=max_star)
         
-        if self.string_mode == 'stats':
-            df = pd.read_csv("problem_w_unobservable_events/simulation_words.csv")
-            self.string_list = df["simulation_words"].to_list()
-            self.index = 0
+        df = pd.read_csv("problem_w_unobservable_events/simulation_words.csv")
+        self.string_list = df["word"].to_list()
+        self.word_index = 0
         
     def reset(self, seed=None, options=None):
         
@@ -139,8 +139,9 @@ class UOEnv(gym.Env):
         self.communication_count = 0
         
         if self.string_mode == "simulation":
-            # self.string="axac$"
-            self.string=self.string_generator.generate_simulation_word()+"$"
+            self.string=self.string_list[self.word_index]
+            self.word_index = (self.word_index + 1) % len(self.string_list)
+            self.string += "$"
             if self.render_mode == 'human':
                 print(f"\nSimulation String: {self.string}")
                 self.simulate()
@@ -155,14 +156,6 @@ class UOEnv(gym.Env):
             if self.render_mode == 'human':
                 print(f"\nNew Episode: {self.string}")
                 self.render()
-        elif self.string_mode == "stats":
-            self.string=self.string_list[self.index]
-            self.index = (self.index + 1) % len(self.string_list)
-            self.string += "$"
-            if self.string[self.string_index] == 'd':
-                self.system_state = self.m_L_transitions[self.system_state].get('d')
-                self.string_index += 1
-            
         
         config = (self.system_state, self.agent_1_belief, self.agent_2_belief)
         
@@ -171,10 +164,11 @@ class UOEnv(gym.Env):
         return np.array(config, dtype=np.int32), info
     
     def step(self, action):
-        if self.string_mode == "simulation" or self.string_mode == "stats":
+        if self.string_mode == "simulation":
             return self.simulation_step(action)
         
-        reward = 0
+        comm_cost = 0
+        penalty = 0
         agent_id, communicate = action
         terminated = False
         
@@ -184,12 +178,12 @@ class UOEnv(gym.Env):
         if agent_id==1:
             self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
             if communicate == 1:
-                reward-=self.COMMUNICATE_COST
+                comm_cost-=self.COMMUNICATE_COST
                 self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
         elif agent_id==2:
             self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
             if communicate == 1:
-                reward-=self.COMMUNICATE_COST
+                comm_cost-=self.COMMUNICATE_COST
                 self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
         else:
             raise ValueError("Invalid agent_id. Must be 1 or 2.")
@@ -209,12 +203,12 @@ class UOEnv(gym.Env):
 
         if self.system_state == 11 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
-            reward -=self.PENALTY_11
+            penalty -=self.PENALTY_11
             terminated = True
 
         if self.system_state == 9 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
-            reward -=self.PENALTY_9
+            penalty -=self.PENALTY_9
             terminated = True
         elif self.string[self.string_index]=="$":
             terminated = True
@@ -223,7 +217,7 @@ class UOEnv(gym.Env):
         
         config = (self.system_state, self.agent_1_belief, self.agent_2_belief)
         info = {"input_alphabet":self.string[self.string_index], "string":self.string}
-        return np.array(config, dtype=np.int32), reward, terminated, False, info
+        return np.array(config, dtype=np.int32), (comm_cost,penalty), terminated, False, info
     
     def render(self):
         print(f"Current symbol: '{self.string[self.string_index]}'")
@@ -236,7 +230,8 @@ class UOEnv(gym.Env):
         # Note: In simulation mode, we still use variable "agent_0_state", but this refers to the actual global state.
         agent_id, communicate = action
         terminated = False
-        reward = 0
+        comm_cost = 0
+        penalty = 0
         
         curr_symbol=self.string[self.string_index]
         
@@ -264,13 +259,13 @@ class UOEnv(gym.Env):
                 self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
                 if communicate ==1:
                     self.communication_count+=1
-                    reward-=self.COMMUNICATE_COST
+                    comm_cost-=self.COMMUNICATE_COST
                     self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
             elif agent_id==2:
                 self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
                 if communicate == 1:
                     self.communication_count+=1
-                    reward-=self.COMMUNICATE_COST
+                    comm_cost-=self.COMMUNICATE_COST
                     self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
             else:
                 raise ValueError("Invalid agent_id. Must be 1 or 2.")
@@ -296,12 +291,12 @@ class UOEnv(gym.Env):
         
         if self.system_state == 11 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
-            reward -=self.PENALTY_11
+            penalty -=self.PENALTY_11
             terminated = True
 
         if self.system_state == 9 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
-            reward -=self.PENALTY_9
+            penalty -=self.PENALTY_9
             terminated = True
         elif self.string[self.string_index]=="$":
             terminated = True
@@ -312,7 +307,7 @@ class UOEnv(gym.Env):
         config = (self.system_state, self.agent_1_belief, self.agent_2_belief)
         info = {"input_alphabet":self.string[self.string_index], "string":self.string}
         
-        return np.array(config, dtype=np.int32), reward, terminated, False, info
+        return np.array(config, dtype=np.int32), (comm_cost, penalty), terminated, False, info
     
     def simulate(self, seven_or_ten=False, agent_1_disable_c=None, agent_2_disable_c=None):
         # Note: In simulation mode, we still use variable "agent_0_state", but this refers to the actual global state.
@@ -349,8 +344,8 @@ class UOEnv(gym.Env):
     "           +-1-+             \n"
    f"           | {a[1]} |             \n"
     "           +---+             \n"
-    "           /   \             \n"
-    "        a /     \ d          \n"
+    "           /   \\             \n"
+    "        a /     \\ d          \n"
     "         V       V           \n"
     "       +-2-+     +-3-+        \n"
    f"   --->| {a[2]} |     | {a[3]} |-------- \n"
@@ -360,9 +355,9 @@ class UOEnv(gym.Env):
     "   | V     V                  V \n"
     "  +-4-+  +-6-+              +-5-+\n"
    f"  | {a[4]} |  | {a[6]} |       ------>| {a[5]} |----------\n"
-    "  +---+  +---+      /       +---+          \       \n"
-    "         /         /       /  |   \         \      \n"
-    "      a /         /     g /   | a  \ d       \ f   \n"
+    "  +---+  +---+      /       +---+          \\       \n"
+    "         /         /       /  |   \\         \\      \n"
+    "      a /         /     g /   | a  \\ d       \\ f   \n"
     "       V         /       V    V     V         V    \n"
     "   +-7-+        /   +-12-+  +-8-+   +-20-+  +-17-+ \n"
    f"   | {a[7]} |       |    | {a[12]}  |  | {a[8]} |   | {a[20]}  |  | {a[17]}  | \n"
@@ -384,11 +379,11 @@ class UOEnv(gym.Env):
     "               |      V               | s     |    \n"
     "               |    +-15-+            |       | t  \n"
    f"               |    | {a[15]}  |            |       |    \n"
-    "                \   +----+            V       |    \n"
-    "                 \      \    r     +-16-+     |    \n"
-   f"                  \      --------->| {a[16]}  |<-----    \n"
-    "                   \               +----+          \n"
-    "                    \_________________|            \n") 
+    "                \\   +----+            V       |    \n"
+    "                 \\      \\    r     +-16-+     |    \n"
+   f"                  \\      --------->| {a[16]}  |<-----    \n"
+    "                   \\               +----+          \n"
+    "                    \\_________________|            \n") 
         time.sleep(1)
         clear_output()
         print()

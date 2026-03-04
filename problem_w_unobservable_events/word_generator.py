@@ -1,6 +1,7 @@
 import random
+import pandas as pd
 
-class TrainingWordGenerator:
+class WordGenerator:
     
     def __init__(self, max_star=5):
         self.max_star = max_star
@@ -104,3 +105,21 @@ class TrainingWordGenerator:
     #             string = "a" + first_group + additional_groups + "axc"
     #             strings.append(string)
     #     return strings
+    
+    # import pandas as pd
+
+generator = WordGenerator(max_star=5)
+
+testing_pool = []
+
+count = 0
+
+while count<300:
+    word = generator.generate_simulation_word()
+    if word not in testing_pool:
+        testing_pool.append(word)
+        count+=1
+
+testing_pool_df = pd.DataFrame(testing_pool, columns=['word'])
+
+testing_pool_df.to_csv('problem_w_unobservable_events/simulation_words.csv', index=False)

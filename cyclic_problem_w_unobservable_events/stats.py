@@ -288,7 +288,7 @@ for index, row in successful_protocols.iterrows():
 successful_protocols["Agent 1 Average Cumulative Reward"] = success_return_values_x
 successful_protocols["Agent 2 Average Cumulative Reward"] = success_return_values_y
 
-# print(pd.DataFrame(joint_return_values, columns=['Agent 1 Return', 'Agent 2 Return']).value_counts())
+print(pd.DataFrame(joint_return_values, columns=['Agent 1 Return', 'Agent 2 Return']).value_counts())
  
 plt.figure(figsize=(10,6))
 plt.scatter(success_return_values_x[2:], success_return_values_y[2:], color='blue', label='Successful Protocols')

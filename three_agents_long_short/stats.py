@@ -2,10 +2,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import gymnasium as gym
-import three_agents_long_short.three_agents_ls_env as three_agents_ls_env
+import three_agents_ls_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-from three_agents_long_short.three_agents_ls_q import S_1, S_3, ACTIONS,A1_OBS, A3_OBS, get_action, FOLDER_NAME
+from three_agents_ls_q import S_1, S_3, ACTIONS,A1_OBS, A3_OBS, get_action, FOLDER_NAME
 
 successful_protocols = pd.read_csv(f'{FOLDER_NAME}/successful_protocols.csv')
 # successful_protocols = pd.read_csv('three_agents_benchmark/successful_protocols_with_returns.csv')
@@ -31,7 +31,7 @@ for index, row in successful_protocols.iterrows():
     q_3 = protocol[len(S_1):].copy()
     
     
-    env = gym.make('ThreeAgentsExpEnv-v0', render_mode=None, string_mode="simulation")
+    env = gym.make('ThreeAgentsLSEnv-v0', render_mode=None, string_mode="simulation")
     
     return_values = [0,0,0]
     

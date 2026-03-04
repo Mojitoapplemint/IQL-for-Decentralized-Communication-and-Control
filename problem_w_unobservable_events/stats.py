@@ -5,7 +5,9 @@ import gymnasium as gym
 import sys
 sys.path.insert(0, './problem_w_unobservable_events')
 import uo_problem_env
-from word_generator import TrainingWordGenerator
+from word_generator import WordGenerator
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 
 A1_OBSERVABLE_EVENTS = ['a', 'c']
 A2_OBSERVABLE_EVENTS = ['x', 'y', 'z', 's', 't', 'r']
@@ -199,31 +201,10 @@ m_L_bot={
     -1: "{-1}",
 }
 
-# regexgen = RegexWordGenerator(max_star=5)
 
-# string_list = []
-
-# for i in range(1000):
-#     string_list.append(regexgen.generate_simulation_word())
-    
-# df = pd.DataFrame(string_list, columns=["strings"])
-# df.to_csv("second_cyclic_problem/strings.csv", index=False)
-
-# regexgen = TrainingWordGenerator(max_star=5)
-
-# string_list = []
-
-# for i in range(1000):
-#     string_list.append(regexgen.generate_simulation_word())
-
-# df = pd.DataFrame(string_list, columns=["simulation_words"])
-# df.to_csv("problem_w_unobservable_events/simulation_words.csv", index=False)
-
-
-# successful_protocols = pd.read_csv("problem_w_unobservable_events/smaller_9_penalty_successful_protocols.csv")
-# successful_protocols = pd.read_csv("problem_w_unobservable_events/larger_11_penalty_successful_protocols.csv")
-# successful_protocols = pd.read_csv("problem_w_unobservable_events/baselines_always_com.csv")
-successful_protocols = pd.read_csv("problem_w_unobservable_events/successful_protocols.csv")
+# successful_protocols = pd.read_csv("problem_w_unobservable_events/baselines.csv")
+successful_protocols = pd.read_csv("problem_w_unobservable_events/exp2_successful_protocols.csv")
+# successful_protocols = pd.read_csv("problem_w_unobservable_events/exp2_successful_protocols.csv")
 
 success_return_values_x = []
 success_return_values_y = []
@@ -257,7 +238,7 @@ for index, row in successful_protocols.iterrows():
     
     return_value = [0,0]
     
-    env = gym.make("UOEnv-v0", render_mode = None, string_mode="stats")
+    env = gym.make("UOEnv-v0", render_mode = None, string_mode="simulation")
     
     communication_count = [0,0,0,0]
     
@@ -312,7 +293,7 @@ for index, row in successful_protocols.iterrows():
             -1:[0,0,0,0,0,0,0,0,0,0,0,0],
     }
     
-    for i in range (1000):
+    for i in range (300):
         terminated = False
         simulation_result = False
 
@@ -367,8 +348,10 @@ for index, row in successful_protocols.iterrows():
                 system_state, agent_1_belief, agent_2_belief = config
                 
                 agent_2_in_dead_state = agent_2_belief == -1
-                    
-                reward_1 += reward
+                
+                comm_cost, penalty = reward
+                
+                reward_1 += comm_cost
                 
                 curr_symbol=info['input_alphabet']
                 
@@ -424,7 +407,9 @@ for index, row in successful_protocols.iterrows():
                 
                 agent_1_in_dead_state = agent_1_belief == -1
                 
-                reward_2 += reward
+                comm_cost, penalty = reward
+                
+                reward_2 += comm_cost
                                 
                 curr_symbol=info['input_alphabet']
                 
@@ -433,9 +418,9 @@ for index, row in successful_protocols.iterrows():
         
         
         if agent_id ==1:
-            reward_2 += reward
+            reward_2 += penalty
         else:
-            reward_1 += reward
+            reward_1 += penalty
         
         return_value[0] += reward_1
         return_value[1] += reward_2
@@ -501,26 +486,30 @@ communication_counts = pd.DataFrame(communication_counts, columns=['Agent 1 Comm
 print(communication_counts)
 
 for column in communication_counts.columns:
-    print(f"{column}: {communication_counts[column].mean()} ± {communication_counts[column].std()}")
+    print(f"{column}: {communication_counts[column].mean():.2f} ± {communication_counts[column].std():.2f}")
 
 # print(T_state_dict)
 
 for key in T_state_dict:
-    print(f"{key}: {np.mean(T_state_dict[key])} ± {np.std(T_state_dict[key])}")
+    print(f"{key}: {np.mean(T_state_dict[key]):.2f} ± {np.std(T_state_dict[key]):.2f}")
 
 # communication_counts.to_csv("problem_w_unobservable_events/larger_11_penalty_communication_counts.csv", index=False)
 
 for key in comm_dict_in_dead_states[0]:
-    temp=0
+    comm=0
+    not_comm=0
     for comm_dict in comm_dict_in_dead_states:
-        temp += comm_dict[key][0]
-    print(f"In Dead State - Event: {key}, Total Communicate: {temp}")
+        comm += comm_dict[key][0]
+        not_comm += comm_dict[key][1]
+    print(f"In Dead State - Event: {key}, Total Communicate: {comm}, Total Not Communicate: {not_comm}")
 
 for key in comm_dict_in_dead_states[0]:
-    temp=0
+    comm=0
+    not_comm=0
     for comm_dict in comm_dict_not_in_dead_states:
-        temp += comm_dict[key][0]
-    print(f"Not In Dead State - Event: {key}, Total Communicate: {temp}")
+        comm += comm_dict[key][0]
+        not_comm += comm_dict[key][1]
+    print(f"Not In Dead State - Event: {key}, Total Communicate: {comm}, Total Not Communicate: {not_comm}")
 
 
 # for comm_dict in comm_dict_in_dead_states[:10]:

@@ -9,7 +9,7 @@ from three_agents_ls_q import S_1, S_3, ACTIONS,A1_OBS, A3_OBS, get_action, q_tr
 
 successful_protocol_dict = {}
 result_dict = {}
-session_count = 100
+session_count = 1000
 for i in range(session_count):
     print(f"{i}/{session_count} done", end="\r")
     env = gym.make('ThreeAgentsLSEnv-v0', render_mode=None, string_mode="training")
