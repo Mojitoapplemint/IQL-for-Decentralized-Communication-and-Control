@@ -44,6 +44,7 @@ class InferenceEnv(gym.Env):
         19:'k1',
         20:'k2',
         21:'x2',
+        -1: '⊥',
     }
     
     m_L_transitions = {
@@ -94,7 +95,7 @@ class InferenceEnv(gym.Env):
     meta_data = {'render_modes':['human'], 'string_modes':['training', 'simulation']}
     
     def __init__(self, render_mode=None, string_mode='training', max_star=3):
-        self.action_space = gym.spaces.Discrete(4)
+        self.action_space = gym.spaces.Discrete(2)
         self.observation_space = gym.spaces.Box(low=-1, high=22, shape=(3,), dtype=np.int32)
         
         assert render_mode is None or render_mode in self.meta_data['render_modes'], f"Invalid render mode: {render_mode}"
@@ -105,13 +106,13 @@ class InferenceEnv(gym.Env):
         
         self.word_generator = WordGenerator(max_star=max_star)
         
-        self.simulation_words = pd.read_csv('check_inference_observability/words_for_stats.csv')['word'].tolist()
+        self.simulation_words = pd.read_csv('check_inference_observability/simulation_words.csv')['word'].tolist()
         self.simulation_words_index = 0
     
     def reset(self, seed=None, options=None):
         super().reset(seed=seed)
         
-        self.system_state, self.agent_1_state, self.agent_2_state= 1, 1, 1
+        self.system_state, self.agent_1_state, self.agent_2_state= 0,0,0
         
         self.word_index=0
         
@@ -119,7 +120,7 @@ class InferenceEnv(gym.Env):
             self.word = self.word_generator.generate_training_word()+'$'
             if self.render_mode == 'human':
                 print(f"\n===========New Episode=========== \nTraining word: {self.word}")
-                print(f"Resulting V structure state: <{[self.system_state], [self.agent_1_state], [self.agent_2_state]}>")
+                print(f"Initial V structure state: <{self.m_L_states[self.system_state]}, {self.m_L_states[self.agent_1_state]}, {self.m_L_states[self.agent_2_state]}>")
                 
             
         elif self.string_mode == 'simulation':
@@ -133,6 +134,14 @@ class InferenceEnv(gym.Env):
         
         self.curr_event = self.word[self.word_index]
 
+        while self.curr_event == 's':
+            self.v_transition(['s', 's', 's'])
+            if self.render_mode == 'human':
+                self.render()
+            
+            # Updating current event to '$' indicating end of the word
+            self.word_index += 1
+            self.curr_event = self.word[self.word_index]
                 
         v_state = (self.system_state, self.agent_1_state, self.agent_2_state)
         info  = {'word': self.word, 'curr_event': self.curr_event}
@@ -195,7 +204,7 @@ class InferenceEnv(gym.Env):
         
         
         # State transition for 's' for training mode
-        if self.curr_event == 's' and self.string_mode == 'training':
+        while self.curr_event == 's' and self.string_mode == 'training':
             self.v_transition(['s', 's', 's'])
             if self.render_mode == 'human':
                 self.render()
@@ -205,7 +214,7 @@ class InferenceEnv(gym.Env):
             self.curr_event = self.word[self.word_index]
             
         # State transition for 's' for simulation or stats mode
-        if self.curr_event == 's' and (self.string_mode == 'simulation'):
+        while self.curr_event == 's' and (self.string_mode == 'simulation'):
             
             # If agent 2 think it is in state where s must be disabled, then it disables it
             agent_2_disable = self.agent_2_state in self.STATES_DISABLE_SIGMA
@@ -294,11 +303,11 @@ class InferenceEnv(gym.Env):
         f"                    |  v      /-----> |  {a[15]} | -----> |  {a[4]} | {block}-{block}-{block}> |  {a[16]} |       \n"
         "                   +-01-+    /        +----+     -> +----+        +----+       \n"
         f"             /---> |  {a[1]} | --+                 m /                              \n"
-        "         a  /      +----+    \        +-02-+ ---    +-03-+        +-17-+       \n"
-        f"           /                  \-----> |  {a[2]} | -----> |  {a[3]} | {block} {block} {block}> |  {a[17]} |       \n"
+        "         a  /      +----+    \\        +-02-+ ---    +-03-+        +-17-+       \n"
+        f"           /                  \\-----> |  {a[2]} | -----> |  {a[3]} | {block} {block} {block}> |  {a[17]} |       \n"
         "          /                      m    +----+   p    +----+   s    +----+       \n"
-        "         |                             \  ^                                    \n"
-        "         |                              \/ s                                  \n"
+        "         |                             \\  ^                                    \n"
+        "         |                              \\/ s                                  \n"
         "         |                                                                    \n"
         "         |                            s __                                    \n"
         "         |                             |  v                                   \n"
@@ -306,23 +315,23 @@ class InferenceEnv(gym.Env):
         f"    |  v |          |  v      /-----> |  {a[6]} | -----> |  {a[8]} | {block} {block} {block}> |  {a[18]} |       \n"
         "     +-00-+   b    +-05-+    /        +----+        +----+        +----+       \n"
         f"     |  {a[0]} | -----> |  {a[5]} | --+                                                  \n"
-        "     +----+        +----+    \        +-07-+        +-09-+        +-19-+       \n"
-        f"         |                    \-----> |  {a[7]} | -----> |  {a[9]} | {block}-{block}-{block}> |  {a[19]} |       \n"
+        "     +----+        +----+    \\        +-07-+        +-09-+        +-19-+       \n"
+        f"         |                    \\-----> |  {a[7]} | -----> |  {a[9]} | {block}-{block}-{block}> |  {a[19]} |       \n"
         "         |                       r    +----+        +----+   s    +----+       \n"
-        "         |                             \  ^                                     \n"
-        "         |                              \/ s                                     \n"
+        "         |                             \\  ^                                     \n"
+        "         |                              \\/ s                                     \n"
         "         |                                                                     \n"
         "         |                            s __                                     \n"
         "         |                             |  v                                    \n"
-        "          \        s __          q    +-12-+   m    +-14-+   s    +-20-+       \n"
-        f"           \        |  v      /-----> |  {a[12]} | -----> |  {a[14]} | {block}-{block}-{block}> |  {a[20]} |       \n"
-        "         c  \      +-10-+    /        +----+        +----+        +----+       \n"
-        f"             \---> |  {a[10]} | --+                                                  \n"
-        "                   +----+    \        +-11-+        +-13-+        +-21-+       \n"
-        f"                              \-----> |  {a[11]} | -----> |  {a[13]} | {block} {block} {block}> |  {a[21]} |       \n"
+        "          \\        s __          q    +-12-+   m    +-14-+   s    +-20-+       \n"
+        f"           \\        |  v      /-----> |  {a[12]} | -----> |  {a[14]} | {block}-{block}-{block}> |  {a[20]} |       \n"
+        "         c  \\      +-10-+    /        +----+        +----+        +----+       \n"
+        f"             \\---> |  {a[10]} | --+                                                  \n"
+        "                   +----+    \\        +-11-+        +-13-+        +-21-+       \n"
+        f"                              \\-----> |  {a[11]} | -----> |  {a[13]} | {block} {block} {block}> |  {a[21]} |       \n"
         "                                 p    +----+   m    +----+   s    +----+       \n"
-        "                                       \  ^                                    \n"
-        "                                        \/ s                                    \n"
+        "                                       \\  ^                                    \n"
+        "                                        \\/ s                                    \n"
         )
 
         time.sleep(1)
