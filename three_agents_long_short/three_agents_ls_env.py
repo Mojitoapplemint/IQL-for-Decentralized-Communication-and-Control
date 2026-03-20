@@ -52,7 +52,7 @@ class ThreeAgentsLSEnv(gym.Env):
         -1:{'':-1, 's':-1 , 'c':-1, 'a':-1, 'x':-1, 'y':-1},
     }
     
-    meta_data = {'render_modes':['human'], 'string_modes':['training', 'simulation', 'stats']}
+    meta_data = {'render_modes':['human'], 'string_modes':['training', 'simulation']}
     
     def __init__(self, render_mode=None, string_mode='training', max_star=5):
         self.action_space = gym.spaces.Discrete(4)
@@ -192,7 +192,7 @@ class ThreeAgentsLSEnv(gym.Env):
             self.curr_event = self.word[self.word_index]
             
         # State transition for 's' for simulation or stats mode
-        if self.curr_event == 's' and (self.string_mode == 'simulation' or self.string_mode == 'stats'):
+        if self.curr_event == 's' and (self.string_mode == 'simulation'):
             
             # If agent 2 think it is in state where s must be disabled, then it disables it
             agent_2_disable = self.agent_2_state in self.STATES_DISABLE_SIGMA
