@@ -2,181 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import gymnasium as gym
-import sys
-sys.path.insert(0, './problem_w_unobservable_events')
 import uo_problem_env
 from word_generator import WordGenerator
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-
-A1_OBSERVABLE_EVENTS = ['a', 'c']
-A2_OBSERVABLE_EVENTS = ['x', 'y', 'z', 's', 't', 'r']
-
-S_1={
-    (1, 'a'):0,
-    (2, 'a'):1,
-    (3, 'a'):2,
-    (4, 'a'):3,
-    (5, 'a'):4,
-    (6, 'a'):5,
-    (7, 'a'):6,
-    (8, 'a'):7,
-    (9, 'a'):8,
-    (10,'a'):9,
-    (11,'a'):10,
-    (12,'a'):11,
-    (13,'a'):12,
-    (14,'a'):13,
-    (15,'a'):14,
-    (16,'a'):15,
-    (17,'a'):16,
-    (19,'a'):17,
-    (21,'a'):18,
-    (-1,'a'):19,
-    (1, 'c'):20,
-    (2, 'c'):21,
-    (3, 'c'):22,
-    (4, 'c'):23,
-    (5, 'c'):24,
-    (6, 'c'):25,
-    (7, 'c'):26,
-    (8, 'c'):27,
-    (9, 'c'):28,
-    (10,'c'):29,
-    (11,'c'):30,
-    (12,'c'):31,
-    (13,'c'):32,
-    (14,'c'):33,
-    (15,'c'):34,
-    (16,'c'):35,
-    (17,'c'):36,
-    (19,'c'):37,
-    (21,'c'):38,
-    (-1,'c'):39,
-}
-
-S_2={
-    (1, 'x'):0,
-    (2, 'x'):1,
-    (3, 'x'):2,
-    (4, 'x'):3,
-    (5, 'x'):4,
-    (6, 'x'):5,
-    (7, 'x'):6,
-    (8, 'x'):7,
-    (9, 'x'):8,
-    (10,'x'):9,
-    (11,'x'):10,
-    (12,'x'):11,
-    (13,'x'):12,
-    (14,'x'):13,
-    (15,'x'):14,
-    (16,'x'):15,
-    (17,'x'):16,
-    (19,'x'):17,
-    (21,'x'):18,
-    (-1,'x'):19,
-    (1, 'y'):20,
-    (2, 'y'):21,
-    (3, 'y'):22,
-    (4, 'y'):23,
-    (5, 'y'):24,
-    (6, 'y'):25,
-    (7, 'y'):26,
-    (8, 'y'):27,
-    (9, 'y'):28,
-    (10,'y'):29,
-    (11,'y'):30,
-    (12,'y'):31,
-    (13,'y'):32,
-    (14,'y'):33,
-    (15,'y'):34,
-    (16,'y'):35,
-    (17,'y'):36,
-    (19,'y'):37,
-    (21,'y'):38,
-    (-1,'y'):39,
-    (1, 'z'):40,
-    (2, 'z'):41,
-    (3, 'z'):42,
-    (4, 'z'):43,
-    (5, 'z'):44,
-    (6, 'z'):45,
-    (7, 'z'):46,
-    (8, 'z'):47,
-    (9, 'z'):48,
-    (10,'z'):49,
-    (11,'z'):50,
-    (12,'z'):51,
-    (13,'z'):52,
-    (14,'z'):53,
-    (15,'z'):54,
-    (16,'z'):55,
-    (17,'z'):56,
-    (19,'z'):57,
-    (21,'z'):58,
-    (-1,'z'):59,
-    (1, 's'):60,
-    (2, 's'):61,
-    (3, 's'):62,
-    (4, 's'):63,
-    (5, 's'):64,
-    (6, 's'):65,
-    (7, 's'):66,
-    (8, 's'):67,
-    (9, 's'):68,
-    (10,'s'):69,
-    (11,'s'):70,
-    (12,'s'):71,
-    (13,'s'):72,
-    (14,'s'):73,
-    (15,'s'):74,
-    (16,'s'):75,
-    (17,'s'):76,
-    (19,'s'):77,
-    (21,'s'):78,
-    (-1,'s'):79,
-    (1, 't'):80,
-    (2, 't'):81,
-    (3, 't'):82,
-    (4, 't'):83,
-    (5, 't'):84,
-    (6, 't'):85,
-    (7, 't'):86,
-    (8, 't'):87,
-    (9, 't'):88,
-    (10,'t'):89,
-    (11,'t'):90,
-    (12,'t'):91,
-    (13,'t'):92,
-    (14,'t'):93,
-    (15,'t'):94,
-    (16,'t'):95,
-    (17,'t'):96,
-    (19,'t'):97,
-    (21,'t'):98,
-    (-1,'t'):99,
-    (1, 'r'):100,
-    (2, 'r'):101,
-    (3, 'r'):102,
-    (4, 'r'):103,
-    (5, 'r'):104,
-    (6, 'r'):105,
-    (7, 'r'):106,
-    (8, 'r'):107,
-    (9, 'r'):108,
-    (10,'r'):109,
-    (11,'r'):110,
-    (12,'r'):111,
-    (13,'r'):112,
-    (14,'r'):113,
-    (15,'r'):114,
-    (16,'r'):115,
-    (17,'r'):116,
-    (19,'r'):117,
-    (21,'r'):118,
-    (-1,'r'):119,
-}
+import seaborn as sns
+from uo_problem_q import S_1, S_2, A1_OBS, A2_OBS, FOLDER_NAME
 
 m_L_bot={
     1:  "{1,3}",
@@ -198,13 +29,17 @@ m_L_bot={
     17: "{8,13,18}",
     19: "{19}",
     21: "{21}",
-    -1: "{-1}",
+    -1: "{⊥}",
 }
 
+# exp_number = 3
 
-# successful_protocols = pd.read_csv("problem_w_unobservable_events/baselines.csv")
-successful_protocols = pd.read_csv("problem_w_unobservable_events/exp3_successful_protocols.csv")
-# successful_protocols = pd.read_csv("problem_w_unobservable_events/exp2_successful_protocols.csv")
+# file_name = f"exp{exp_number}_successful_protocols_a_0.01_g_0.1_e_0.1"
+
+file_name = "baselines"
+
+successful_protocols = pd.read_csv(f'{FOLDER_NAME}/{file_name}.csv')
+
 
 success_return_values_x = []
 success_return_values_y = []
@@ -215,27 +50,17 @@ communication_counts = []
 a1_protocol_list= []
 a2_protocol_list= []
 
-comm_dict_in_dead_states=[]
-comm_dict_not_in_dead_states=[]
-
-T_state_dict={
-    "(9,-1,-1)":[],
-    "(7,7,-1)":[],
-    "(11,11,-1)":[],
-    "(11,-1,-1)":[],
-    "(11,11,11)":[],
-    "(7,7,7)":[],
-}
+T_state_dict_list = []
 
 for index, row in successful_protocols.iterrows():
     print(f"{index} / {len(successful_protocols)}", end="\r")
     
-    protocol = row["Communication Protocols"].replace("(","").replace(")","").split(", ")
+    protocol = row["Protocol"].replace("(","").replace(")","").split(", ")
     protocol = [int(x) for x in protocol]
     
     q_1 = protocol[:40] + [0 for _ in range(40)]
     q_2 = protocol[40:] + [0 for _ in range(120)]
-    
+        
     return_value = [0,0]
     
     env = gym.make("UOEnv-v0", render_mode = None, string_mode="simulation")
@@ -245,52 +70,21 @@ for index, row in successful_protocols.iterrows():
     comm_dict_in_dead_state={}
     comm_dict_not_in_dead_state={}
     
-    T_state = [0,0,0,0,0,0]
+    T_state_dict={
+        (9,-1,-1):0,
+        (7,7,-1):0,
+        (11,11,-1):0,
+        (11,-1,-1):0,
+        (11,11,11):0,
+        (7,7,7):0,
+    }
     
     a1_communication_protocol={
-            1 :[0,0,0,0],
-            2 :[0,0,0,0],
-            3 :[0,0,0,0],
-            4 :[0,0,0,0],
-            5 :[0,0,0,0],
-            6 :[0,0,0,0],
-            7 :[0,0,0,0],
-            8 :[0,0,0,0],
-            9 :[0,0,0,0],
-            10:[0,0,0,0],
-            11:[0,0,0,0],
-            12:[0,0,0,0],
-            13:[0,0,0,0],
-            14:[0,0,0,0],
-            15:[0,0,0,0],
-            16:[0,0,0,0],
-            17:[0,0,0,0],
-            19:[0,0,0,0],
-            21:[0,0,0,0],
-            -1:[0,0,0,0],
+        i: [0,0] for i in list(S_1.keys())[:40]
     }
     
     a2_communication_protocol={
-            1 :[0,0,0,0,0,0,0,0,0,0,0,0],
-            2 :[0,0,0,0,0,0,0,0,0,0,0,0],
-            3 :[0,0,0,0,0,0,0,0,0,0,0,0],
-            4 :[0,0,0,0,0,0,0,0,0,0,0,0],
-            5 :[0,0,0,0,0,0,0,0,0,0,0,0],
-            6 :[0,0,0,0,0,0,0,0,0,0,0,0],
-            7 :[0,0,0,0,0,0,0,0,0,0,0,0],
-            8 :[0,0,0,0,0,0,0,0,0,0,0,0],
-            9 :[0,0,0,0,0,0,0,0,0,0,0,0],
-            10:[0,0,0,0,0,0,0,0,0,0,0,0],
-            11:[0,0,0,0,0,0,0,0,0,0,0,0],
-            12:[0,0,0,0,0,0,0,0,0,0,0,0],
-            13:[0,0,0,0,0,0,0,0,0,0,0,0],
-            14:[0,0,0,0,0,0,0,0,0,0,0,0],
-            15:[0,0,0,0,0,0,0,0,0,0,0,0],
-            16:[0,0,0,0,0,0,0,0,0,0,0,0],
-            17:[0,0,0,0,0,0,0,0,0,0,0,0],
-            19:[0,0,0,0,0,0,0,0,0,0,0,0],
-            21:[0,0,0,0,0,0,0,0,0,0,0,0],
-            -1:[0,0,0,0,0,0,0,0,0,0,0,0],
+        i: [0,0] for i in list(S_2.keys())[:120]
     }
     
     for i in range (300):
@@ -298,16 +92,16 @@ for index, row in successful_protocols.iterrows():
         simulation_result = False
 
 
-        config, info = env.reset()
+        v_state, info = env.reset()
 
-        system_state, agent_1_belief, agent_2_belief = config
+        system_state, agent_1_belief, agent_2_belief = v_state
 
-        curr_symbol=info['input_alphabet']
+        curr_event=info['curr_event']
         
-        string = info['string']
+        word = info['word']
 
-        agent_1_prev_row_num = -1
-        agent_2_prev_row_num = -1
+        s_1 = -1
+        s_2 = -1
 
         agent_1_in_dead_state = False
         agent_2_in_dead_state = False
@@ -315,15 +109,15 @@ for index, row in successful_protocols.iterrows():
         reward_1=0
         reward_2=0
         
-        t_1=1
-        t_2=1        
+        t_1=0
+        t_2=0        
         while not (terminated):
 
-            if curr_symbol in ['a', 'c']:
+            if curr_event in A1_OBS:
                 
                 agent_id=1
                 
-                if agent_1_prev_row_num != -1 :
+                if s_1 != -1 :
                     # return_value[0] += (0.1**t_1)*reward_1
                     return_value[0] += reward_1
                     t_1+=1
@@ -332,36 +126,30 @@ for index, row in successful_protocols.iterrows():
                 if agent_2_in_dead_state:
                     agent_1_communicate = 0
                 else:
-                    agent_1_row_num = len(S_1)+S_1[(agent_1_belief, curr_symbol)] if agent_2_in_dead_state else S_1[(agent_1_belief, curr_symbol)]
-                    agent_1_communicate = q_1[agent_1_row_num]
+                    s_1 = S_1[(agent_1_belief, curr_event, agent_2_in_dead_state)]
+                    agent_1_communicate = q_1[s_1]
                     
-                if agent_1_communicate ==1:
-                    communication_count[0] += 1 
-                    a1_communication_protocol[agent_1_belief][A1_OBSERVABLE_EVENTS.index(curr_symbol)*2] += 1
-                else:
-                    communication_count[1] += 1
-                    a1_communication_protocol[agent_1_belief][A1_OBSERVABLE_EVENTS.index(curr_symbol)*2+1] += 1
+                    if agent_1_communicate ==1:
+                        communication_count[0] += 1
+                        (a1_communication_protocol[agent_1_belief, curr_event, agent_2_in_dead_state])[0] += 1
+                    else:
+                        communication_count[1] += 1
+                        (a1_communication_protocol[agent_1_belief, curr_event, agent_2_in_dead_state])[1] += 1
 
+                v_state, reward, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
                 
-                config, reward, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
-                
-                system_state, agent_1_belief, agent_2_belief = config
-                
-                agent_2_in_dead_state = agent_2_belief == -1
-                
+                system_state, agent_1_belief, agent_2_belief = v_state
+                                
                 comm_cost, penalty = reward
                 
                 reward_1 += comm_cost
-                
-                curr_symbol=info['input_alphabet']
-                
-                agent_1_prev_row_num = agent_1_row_num
+
                             
-            if curr_symbol in ['x', 'y', 'z', 's', 't', 'r']:
+            if curr_event in A2_OBS:
 
                 agent_id=2
                 
-                if agent_2_prev_row_num != -1 :
+                if s_2 != -1 :
                     # return_value[1] += (0.1**t_2)*reward_2
                     return_value[1] += reward_2
                     t_2+=1
@@ -370,168 +158,123 @@ for index, row in successful_protocols.iterrows():
                 if agent_1_in_dead_state:
                     agent_2_communicate = 0
                 else:
-                    agent_2_row_num = len(S_2)+S_2[(agent_2_belief, curr_symbol)] if agent_1_in_dead_state else S_2[(agent_2_belief, curr_symbol)]
-                    agent_2_communicate = q_2[agent_2_row_num]
+                    s_2 = S_2[(agent_2_belief, curr_event, agent_1_in_dead_state)]
+                    agent_2_communicate = q_2[s_2]
                 
-                if curr_symbol not in comm_dict_in_dead_state:
-                    comm_dict_in_dead_state[curr_symbol] = [0,0]
-                
-                if curr_symbol not in comm_dict_not_in_dead_state:
-                    comm_dict_not_in_dead_state[curr_symbol] = [0,0]
-                
-                # if curr_symbol == 'x' and agent_2_belief == -1 and agent_2_communicate == 0:
-                #     print(agent_1_in_dead_state)
-                
-                
-                if agent_2_communicate ==1:
-                    communication_count[2] += 1
-                    if agent_2_belief == -1:
-                        
-                        comm_dict_in_dead_state[curr_symbol][0] += 1
+                    if agent_2_communicate ==1:    
+                        communication_count[2] += 1
+                        (a2_communication_protocol[agent_2_belief, curr_event, agent_1_in_dead_state])[0] += 1  
                     else:
-                        comm_dict_not_in_dead_state[curr_symbol][0] += 1
-                    a2_communication_protocol[agent_2_belief][A2_OBSERVABLE_EVENTS.index(curr_symbol)*2] += 1
-                else:
-                    communication_count[3] += 1
-                    if agent_2_belief == -1:
-                        
-                        comm_dict_in_dead_state[curr_symbol][1] += 1
-                    else:
-                        comm_dict_not_in_dead_state[curr_symbol][1] += 1
-                    a2_communication_protocol[agent_2_belief][A2_OBSERVABLE_EVENTS.index(curr_symbol)*2+1] += 1
+                        communication_count[3] += 1
+                        (a2_communication_protocol[agent_2_belief, curr_event, agent_1_in_dead_state])[1] += 1  
                 
+                v_state, reward, terminated, truncated, info = env.step((agent_id, agent_2_communicate))
                 
-                config, reward, terminated, truncated, info = env.step((agent_id, agent_2_communicate))
-                
-                system_state, agent_1_belief, agent_2_belief = config
-                
-                agent_1_in_dead_state = agent_1_belief == -1
+                system_state, agent_1_belief, agent_2_belief = v_state
                 
                 comm_cost, penalty = reward
                 
-                reward_2 += comm_cost
-                                
-                curr_symbol=info['input_alphabet']
-                
-                agent_2_prev_row_num = agent_2_row_num
+                reward_2 += comm_cost            
+            
+            agent_2_in_dead_state = agent_2_belief == -1
+            
+            agent_1_in_dead_state = agent_1_belief == -1
+            
+            curr_event=info['curr_event']
 
+        T_state_dict[tuple(v_state)]+=1
         
-        
-        if agent_id ==1:
-            reward_2 += penalty
-        else:
-            reward_1 += penalty
+        reward_2 += penalty
+        reward_1 += penalty
         
         return_value[0] += reward_1
         return_value[1] += reward_2
         # return_value[0] += (0.1**t_1)*reward_1
         # return_value[1] += (0.1**t_2)*reward_2
         
-        if (system_state, agent_1_belief, agent_2_belief) == (9, -1, -1):
-            T_state[0] += 1
-        if (system_state, agent_1_belief, agent_2_belief) == (7, 7, -1):
-            T_state[1] += 1
-        if (system_state, agent_1_belief, agent_2_belief) == (11, 11, -1):
-            T_state[2] += 1
-        if (system_state, agent_1_belief, agent_2_belief) == (11, -1, -1):
-            T_state[3] += 1
-        if (system_state, agent_1_belief, agent_2_belief) == (11, 11, 11):
-            T_state[4] += 1
-        if (system_state, agent_1_belief, agent_2_belief) == (7, 7, 7):
-            T_state[5] += 1
-    
+    T_state_dict_list.append(T_state_dict)
 
-    T_state_dict["(9,-1,-1)"].append(T_state[0])
-    T_state_dict["(7,7,-1)"].append(T_state[1])
-    T_state_dict["(11,11,-1)"].append(T_state[2])
-    T_state_dict["(11,-1,-1)"].append(T_state[3])
-    T_state_dict["(11,11,11)"].append(T_state[4])
-    T_state_dict["(7,7,7)"].append(T_state[5])
-    
-    comm_dict_in_dead_states.append(comm_dict_in_dead_state)
-    comm_dict_not_in_dead_states.append(comm_dict_not_in_dead_state)
     
     a1_protocol_list.append(a1_communication_protocol)
     a2_protocol_list.append(a2_communication_protocol)
     
-    communication_counts.append(1/300*np.array(communication_count))
+    communication_counts.append(np.round(1/300*np.array(communication_count), 2))
     
-    return_value[0] = np.round(return_value[0]/300, 2)
-    return_value[1] = np.round(return_value[1]/300, 2)
+    return_value[0] = np.round(return_value[0]/300, 3)
+    return_value[1] = np.round(return_value[1]/300, 3)
     success_return_values_x.append(return_value[0])
     success_return_values_y.append(return_value[1])
     joint_return_values.append((return_value[0], return_value[1]))
-
-print(np.mean(success_return_values_x), np.mean(success_return_values_y))
 
 # successful_protocols["Agent 1 Average Cumulative Reward"] = success_return_values_x
 # successful_protocols["Agent 2 Average Cumulative Reward"] = success_return_values_y
 
 # successful_protocols.to_csv("problem_w_unobservable_events/larger_11_penalty_successful_protocols_with_returns.csv", index=False)
 
-print(pd.DataFrame(joint_return_values, columns=['Agent 1 Return', 'Agent 2 Return']).value_counts())
- 
-# plt.figure(figsize=(10,6))
-# plt.scatter(success_return_values_x, success_return_values_y, color='blue', label='Successful Protocols')
-# plt.xlabel('Agent 1 Average Return')
-# plt.ylabel('Agent 2 Average Return')
-# plt.title('Return Values of Communication Protocols')
-# plt.legend()
-# plt.grid(True)
-# plt.savefig('problem_w_unobservable_events/larger_11_penalty_returns.png')
-# plt.show()
+joint_return_values_df = pd.DataFrame(joint_return_values, columns=['Agent 1 Return', 'Agent 2 Return'])
+
+# print(joint_return_values_df.value_counts())
 
 communication_counts = pd.DataFrame(communication_counts, columns=['Agent 1 Communicate', 'Agent 1 Not Communicate', 'Agent 2 Communicate', 'Agent 2 Not Communicate'])
 
-print(communication_counts)
 
 for column in communication_counts.columns:
     print(f"{column}: {communication_counts[column].mean():.2f} ± {communication_counts[column].std():.2f}")
 
+print(communication_counts)
+
 # print(T_state_dict)
 
-for key in T_state_dict:
-    print(f"{key}: {np.mean(T_state_dict[key]):.2f} ± {np.std(T_state_dict[key]):.2f}")
+T_state_df = pd.DataFrame(T_state_dict_list, columns=T_state_dict.keys())
 
 # communication_counts.to_csv("problem_w_unobservable_events/larger_11_penalty_communication_counts.csv", index=False)
 
-for key in comm_dict_in_dead_states[0]:
-    comm=0
-    not_comm=0
-    for comm_dict in comm_dict_in_dead_states:
-        comm += comm_dict[key][0]
-        not_comm += comm_dict[key][1]
-    print(f"In Dead State - Event: {key}, Total Communicate: {comm}, Total Not Communicate: {not_comm}")
+a1_protocol_df = pd.DataFrame(a1_protocol_list)
+a2_protocol_df = pd.DataFrame(a2_protocol_list)
 
-for key in comm_dict_in_dead_states[0]:
-    comm=0
-    not_comm=0
-    for comm_dict in comm_dict_not_in_dead_states:
-        comm += comm_dict[key][0]
-        not_comm += comm_dict[key][1]
-    print(f"Not In Dead State - Event: {key}, Total Communicate: {comm}, Total Not Communicate: {not_comm}")
+for column in a1_protocol_df.columns:    
+    if np.sum(np.sum(a1_protocol_df[column])) == 0:
+        a1_protocol_df=a1_protocol_df.drop(columns=[column])
+
+for column in a2_protocol_df.columns:    
+    if np.sum(np.sum(a2_protocol_df[column])) == 0:
+        a2_protocol_df=a2_protocol_df.drop(columns=[column])
 
 
-# for comm_dict in comm_dict_in_dead_states[:10]:
-#     print(comm_dict)
-#     print()
+protocols_df = pd.concat([successful_protocols, joint_return_values_df, communication_counts, T_state_df, a1_protocol_df, a2_protocol_df], axis=1)
 
-# for comm_dict in comm_dict_not_in_dead_states[:10]:
-#     print(comm_dict)
-#     print()
+return_data = []
 
+for return_value in joint_return_values_df["Agent 2 Return"].unique():
+    
+    mask_df = protocols_df[protocols_df['Agent 2 Return'] == return_value]
+    
+    count = mask_df['Success Count'].sum()
+    
+    print(f"Agent 2 Return : {return_value}, count: {count}")
+    
+    return_data.append((return_value, count))
 
-# for protocol in a2_protocol_list:
-#     print(protocol)
-#     print()
-
-# for protocol in a2_protocol_list:
-#     print()
-#     for key in protocol:
-#         total = sum(protocol[key])
-#         if total>0:
-#             for i in range(len(protocol[key])):
-#                 print(m_bottom[key], f"{A2_OBSERVABLE_EVENTS[i//2]} {'C' if i%2==0 else 'NC'}: {protocol[key][i]}")
-            # print(m_bottom[key], protocol[key])
+return_data_df = pd.DataFrame(return_data, columns=['Agent 2 Return', 'Count'])
 
 
+# print(return_data_df)
+
+weighted_mean = np.sum(return_data_df['Agent 2 Return'] * return_data_df['Count']) / np.sum(return_data_df['Count'])
+
+print("Weighted Mean of Agent 2 Return:", weighted_mean)
+
+protocols_df.to_csv(f"{FOLDER_NAME}/{file_name}_with_stats.csv", index=False)
+
+# plt.figure(figsize=(10,6))
+# ax = sns.barplot(x=return_data_df['Agent 2 Return'], y=return_data_df['Count'], alpha=0.7, color='blue', edgecolor='black')
+# plt.xlabel('Agent 2 Average Return')
+# plt.title(f'Exp {exp_number} Return Values for Agent 2 / Weighted Mean {weighted_mean:.3f}')
+# plt.legend()
+# for c in ax.containers:
+#     ax.bar_label(c) # fmt='%d' ensures the labels are displayed as integers
+
+# plt.savefig(f'problem_w_unobservable_events/Exp {exp_number} Return.png')
+# plt.show()
+
+# print(np.mean(return_data_df["Agent 2 Return"]))

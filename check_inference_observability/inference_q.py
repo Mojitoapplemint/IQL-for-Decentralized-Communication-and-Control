@@ -351,6 +351,14 @@ A1_OBS = ['a', 'b', 'c', 'm']
 
 A2_OBS = ['p', 'q', 'r']
 
+def epsilon_decay(min_epsilon, episode, max_epochs):
+    initial_epsilon = 1.0
+    
+    if episode <= 0.4*max_epochs:
+        return initial_epsilon
+    
+    return max(min_epsilon, initial_epsilon-(episode/(max_epochs)))
+
 def get_action(q_table, is_opponent_dead, row_num, epsilon):
     if is_opponent_dead:
         return 0
@@ -359,14 +367,14 @@ def get_action(q_table, is_opponent_dead, row_num, epsilon):
     else:
         return  np.argmax(q_table[row_num])  # Exploit: best action from Q-table
 
-def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_process=False):
+def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, min_epsilon=0.1, print_process=False):
 
     q_1 = np.zeros((len(S_1), env.action_space.n))
     q_2 = np.zeros((len(S_2), env.action_space.n))
 
-    for epoch in range(epochs):
-        if (print_process and epoch%100==0):
-            print(str(100*epoch/epochs)+"%","done" , end="\r")
+    for episode in range(epochs):
+        if (print_process and episode%100==0):
+            print(str(100*episode/epochs)+"%","done" , end="\r")
         
         config, info = env.reset()
         
@@ -388,6 +396,9 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
         
         agent_1_in_dead_state = False
         agent_2_in_dead_state = False
+        
+        epsilon = epsilon_decay(min_epsilon, episode, epochs)
+        
         
         while not (terminated or truncated):
             if curr_event in A1_OBS:

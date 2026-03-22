@@ -12,8 +12,8 @@ gym.register(
 
 class UOEnv(gym.Env):
     COMMUNICATE_COST = 10
-    # PENALTY_11 = 500 # For Exp 1
-    PENALTY_11 = 100 # For Exp 2
+    PENALTY_11 = 500 # For Exp 1
+    # PENALTY_11 = 100 # For Exp 2
     # PENALTY_11 = 0 # For Exp 3
     PENALTY_9 = 500
     
@@ -124,12 +124,12 @@ class UOEnv(gym.Env):
         self.string_generator = WordGenerator(max_star=max_star)
         
         df = pd.read_csv("problem_w_unobservable_events/simulation_words.csv")
-        self.string_list = df["word"].to_list()
-        self.word_index = 0
+        self.simulation_word_list = df["word"].to_list()
+        self.simulation_word_index = 0
         
     def reset(self, seed=None, options=None):
         
-        self.string_index = 0
+        self.event_index = 0
         
         self.system_state = 1
         
@@ -140,27 +140,27 @@ class UOEnv(gym.Env):
         self.communication_count = 0
         
         if self.string_mode == "simulation":
-            self.string=self.string_list[self.word_index]
-            self.word_index = (self.word_index + 1) % len(self.string_list)
-            self.string += "$"
+            self.word=self.simulation_word_list[self.simulation_word_index]
+            self.simulation_word_index = (self.simulation_word_index + 1) % len(self.simulation_word_list)
+            self.word += "$"
             if self.render_mode == 'human':
-                print(f"\nSimulation String: {self.string}")
+                print(f"\nSimulation String: {self.word}")
                 self.simulate()
-            if self.string[self.string_index] == 'd':
+            if self.word[self.event_index] == 'd':
                 self.system_state = self.m_L_transitions[self.system_state].get('d')
-                self.string_index += 1
+                self.event_index += 1
             if self.render_mode == 'human':
                 self.simulate()
         elif self.string_mode == "training":
-            self.string=self.string_generator.generate_training_word()+"$" 
+            self.word=self.string_generator.generate_training_word()+"$" 
             # self.string = "aaazraaazraaazraaazraaxc$"       
             if self.render_mode == 'human':
-                print(f"\nNew Episode: {self.string}")
+                print(f"\nNew Episode: {self.word}")
                 self.render()
         
         config = (self.system_state, self.agent_1_belief, self.agent_2_belief)
         
-        info = {"input_alphabet":self.string[self.string_index], "string":self.string }
+        info = {"curr_event":self.word[self.event_index], "word":self.word }
         
         return np.array(config, dtype=np.int32), info
     
@@ -173,7 +173,7 @@ class UOEnv(gym.Env):
         agent_id, communicate = action
         terminated = False
         
-        curr_symbol=self.string[self.string_index]
+        curr_symbol=self.word[self.event_index]
         
         self.system_state = self.observer_sigma_o[self.system_state].get(curr_symbol)
         if agent_id==1:
@@ -193,9 +193,9 @@ class UOEnv(gym.Env):
             print(f"\nAgent {agent_id} {'communicated' if communicate==1 else 'did not communicate'} on '{curr_symbol}'")
             self.render()
         
-        self.string_index += 1
+        self.event_index += 1
         
-        curr_symbol=self.string[self.string_index]
+        curr_symbol=self.word[self.event_index]
         
         # reward assignment        
         # if (self.agent_1_belief != self.agent_0_state) and (self.agent_2_belief != self.agent_0_state):
@@ -211,17 +211,17 @@ class UOEnv(gym.Env):
             
             penalty -=self.PENALTY_9
             terminated = True
-        elif self.string[self.string_index]=="$":
+        elif self.word[self.event_index]=="$":
             terminated = True
         
 
         
         config = (self.system_state, self.agent_1_belief, self.agent_2_belief)
-        info = {"input_alphabet":self.string[self.string_index], "string":self.string}
+        info = {"curr_event":self.word[self.event_index], "word":self.word}
         return np.array(config, dtype=np.int32), (comm_cost,penalty), terminated, False, info
     
     def render(self):
-        print(f"Current symbol: '{self.string[self.string_index]}'")
+        print(f"Current symbol: '{self.word[self.event_index]}'")
         # print(self.agent_0_state, self.m_bottom[self.agent_0_state])
         # print(self.agent_1_belief, self.agent_2_belief)
         # print(self.m_bottom[self.agent_1_belief], self.m_bottom[self.agent_2_belief])
@@ -234,7 +234,7 @@ class UOEnv(gym.Env):
         comm_cost = 0
         penalty = 0
         
-        curr_symbol=self.string[self.string_index]
+        curr_symbol=self.word[self.event_index]
         
         if curr_symbol == 'c':
             if self.system_state not in [7,10]:
@@ -277,17 +277,17 @@ class UOEnv(gym.Env):
             if self.render_mode == 'human':
                 self.simulate()
         
-        self.string_index += 1
+        self.event_index += 1
         
-        curr_symbol=self.string[self.string_index]
+        curr_symbol=self.word[self.event_index]
         
         if curr_symbol in ['d','g', 'f']:
             self.system_state = self.m_L_transitions[self.system_state].get(curr_symbol)
             if self.render_mode == 'human':
                 self.simulate()
             
-            self.string_index += 1
-            curr_symbol=self.string[self.string_index]
+            self.event_index += 1
+            curr_symbol=self.word[self.event_index]
         
         
         if self.system_state == 11 and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
@@ -299,14 +299,14 @@ class UOEnv(gym.Env):
             
             penalty -=self.PENALTY_9
             terminated = True
-        elif self.string[self.string_index]=="$":
+        elif self.word[self.event_index]=="$":
             terminated = True
         
-        if self.string[self.string_index]=="$":
+        if self.word[self.event_index]=="$":
             terminated = True
         
         config = (self.system_state, self.agent_1_belief, self.agent_2_belief)
-        info = {"input_alphabet":self.string[self.string_index], "string":self.string}
+        info = {"curr_event":self.word[self.event_index], "word":self.word}
         
         return np.array(config, dtype=np.int32), (comm_cost, penalty), terminated, False, info
     
@@ -316,7 +316,7 @@ class UOEnv(gym.Env):
         a = [" " for _ in range(22)]
         a[self.system_state] = "#"
         
-        print(f"global state: {self.system_state},\n agent 1's belief: {self.agent_1_belief}:{self.m_L_bot[self.agent_1_belief]},\n agent 2's belief: {self.agent_2_belief}:{self.m_L_bot[self.agent_2_belief]}>,\n Current symbol: '{self.string[self.string_index]}', # comm: {self.communication_count}")
+        print(f"global state: {self.system_state},\n agent 1's belief: {self.agent_1_belief}:{self.m_L_bot[self.agent_1_belief]},\n agent 2's belief: {self.agent_2_belief}:{self.m_L_bot[self.agent_2_belief]}>,\n Current symbol: '{self.word[self.event_index]}', # comm: {self.communication_count}")
         
         
         block = "|"

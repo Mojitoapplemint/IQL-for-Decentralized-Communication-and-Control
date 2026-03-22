@@ -11,9 +11,9 @@ gym.register(
 )
 
 class InferenceEnv(gym.Env):
-    COMMUNICATION_COST = 0.1
-    D_PENALTY = 100000
-    E_PENALTY = 100000
+    COMMUNICATION_COST = 0
+    D_PENALTY = 10000000
+    E_PENALTY = 0
     
     D_PEN_STATES = {17,18,21}
     
@@ -106,7 +106,8 @@ class InferenceEnv(gym.Env):
         
         self.word_generator = WordGenerator(max_star=max_star)
         
-        self.simulation_words = pd.read_csv('check_inference_observability/simulation_words.csv')['word'].tolist()
+        self.simulation_words = pd.read_csv('check_inference_observability/simulation_words2.csv')['word'].tolist()
+        # self.simulation_words_index = np.random.randint(0, len(self.simulation_words)-1)
         self.simulation_words_index = 0
     
     def reset(self, seed=None, options=None):
@@ -125,7 +126,7 @@ class InferenceEnv(gym.Env):
             
         elif self.string_mode == 'simulation':
             self.word = self.simulation_words[self.simulation_words_index] + '$'
-            self.simulation_words_index += 1
+            self.simulation_words_index = (self.simulation_words_index + 1)%len(self.simulation_words)
             self.curr_event = self.word[self.word_index]
                         
             if self.render_mode == 'human':

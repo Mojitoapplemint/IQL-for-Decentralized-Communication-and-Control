@@ -75,14 +75,12 @@ for index, row in protocols_df.iterrows():
     a1_communication_protocol = {i: [0,0] for i in S_1.keys()}
     a2_communication_protocol = {i: [0,0] for i in S_2.keys()}
     
-    T_state_dict={
-
-    }
+    T_state_dict={}
     
     
     communicate_count = [0,0,0,0]
     
-    for i in range (500):
+    for i in range (100):
         terminated = False
         simulation_result = False
 
@@ -95,8 +93,8 @@ for index, row in protocols_df.iterrows():
         word = info['word']
         # print(word)
 
-        agent_1_prev_row_num = -1
-        agent_2_prev_row_num = -1
+        s_2 = -1
+        s_2 = -1
 
         agent_1_in_dead_state = False
         agent_2_in_dead_state = False
@@ -112,7 +110,7 @@ for index, row in protocols_df.iterrows():
                 
                 agent_id=1
                 
-                if agent_1_prev_row_num != -1 :
+                if s_2 != -1 :
                     # cumulative_reward[0] += (GAMMA**t_1)*reward_1
                     cumulative_reward[0] += reward_1
                     t_1+=1
@@ -121,15 +119,15 @@ for index, row in protocols_df.iterrows():
                 if agent_2_in_dead_state:
                     agent_1_communicate = 0
                 else:
-                    agent_1_row_num = S_1[(agent_1_belief, curr_event, agent_2_in_dead_state)]
-                    agent_1_communicate = q_1[agent_1_row_num]
+                    s_2 = S_1[(agent_1_belief, curr_event, agent_2_in_dead_state)]
+                    agent_1_communicate = q_1[s_2]
                     
-                if agent_1_communicate ==1:
-                    communicate_count[0] += 1
-                    (a1_communication_protocol[agent_1_belief, curr_event, agent_2_in_dead_state])[0] += 1
-                else:
-                    communicate_count[1] += 1
-                    (a1_communication_protocol[agent_1_belief, curr_event, agent_2_in_dead_state])[1] += 1
+                    if agent_1_communicate ==1:
+                        communicate_count[0] += 1
+                        (a1_communication_protocol[agent_1_belief, curr_event, agent_2_in_dead_state])[0] += 1
+                    else:
+                        communicate_count[1] += 1
+                        (a1_communication_protocol[agent_1_belief, curr_event, agent_2_in_dead_state])[1] += 1
 
 
                 config, reward, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
@@ -140,8 +138,6 @@ for index, row in protocols_df.iterrows():
                 comm_cost, penalty = reward
                 
                 reward_1 += comm_cost
-                                
-                agent_1_prev_row_num = agent_1_row_num
                 
                 
                        
@@ -149,29 +145,27 @@ for index, row in protocols_df.iterrows():
 
                 agent_id=2
                 
-                if agent_2_prev_row_num != -1 :
+                if s_2 != -1 :
                     # cumulative_reward[1] += (GAMMA**t_2)*reward_2
                     cumulative_reward[1] += reward_2
                     # return_value[1] += reward_2
                     t_2+=1
                     reward_2 = 0
                 
-                s_2 = S_2[(agent_2_belief, curr_event, agent_1_in_dead_state)]
                 
                 if agent_1_in_dead_state:
                     a2_action = 0
                 else:
-                    agent_2_row_num = S_2[(agent_2_belief, curr_event, agent_1_in_dead_state)]
-                    a2_action = q_2[agent_2_row_num]
+                    s_2 = S_2[(agent_2_belief, curr_event, agent_1_in_dead_state)]
+                    a2_action = q_2[s_2]
                 
-                
-                if a2_action ==1:
-                    
-                    communicate_count[2] += 1
-                    (a2_communication_protocol[agent_2_belief, curr_event, agent_1_in_dead_state])[0] += 1  
-                else:
-                    communicate_count[3] += 1
-                    (a2_communication_protocol[agent_2_belief, curr_event, agent_1_in_dead_state])[1] += 1  
+                    if a2_action ==1:
+                        
+                        communicate_count[2] += 1
+                        (a2_communication_protocol[agent_2_belief, curr_event, agent_1_in_dead_state])[0] += 1  
+                    else:
+                        communicate_count[3] += 1
+                        (a2_communication_protocol[agent_2_belief, curr_event, agent_1_in_dead_state])[1] += 1  
                 
                 
                 config, reward, terminated, truncated, info = env.step((agent_id, a2_action))
@@ -181,8 +175,6 @@ for index, row in protocols_df.iterrows():
                 comm_cost, penalty = reward
                 
                 reward_2 += comm_cost
-                                
-                agent_2_prev_row_num = agent_2_row_num
                 
             agent_1_in_dead_state = agent_1_belief == -1
             agent_2_in_dead_state = agent_2_belief == -1

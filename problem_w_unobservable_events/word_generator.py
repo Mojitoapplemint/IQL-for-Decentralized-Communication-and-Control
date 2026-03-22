@@ -84,42 +84,19 @@ class WordGenerator:
             
             return "da" + middle_groups + "axc"
 
-    # def generate_stats_word(self):
-    #     strings = []
-    #     for _ in range(1000):
-    #         choice = random.randint(1, 2)
-    #         if choice == 1:
-    #             num_a = random.randint(4, 4+self.max_star)
-    #             string = "a" + "a" * num_a + "xac"
-    #             strings.append(string)
-    #         else:
-    #             first_group = random.choice(["xsa", "ayta", "aazra"])
-            
-    #             # Zero or more additional groups
-    #             num_additional = random.randint(0, self.max_star)
-    #             additional_groups = ""
-                
-    #             for _ in range(num_additional):
-    #                 additional_groups += random.choice(["xsa", "ayta", "aazra"])
-                
-    #             string = "a" + first_group + additional_groups + "axc"
-    #             strings.append(string)
-    #     return strings
-    
-    # import pandas as pd
 
-generator = WordGenerator(max_star=5)
+# generator = WordGenerator(max_star=5)
 
-testing_pool = []
+# testing_pool = []
 
-count = 0
+# count = 0
 
-while count<300:
-    word = generator.generate_simulation_word()
-    if word not in testing_pool:
-        testing_pool.append(word)
-        count+=1
+# while count<300:
+#     word = generator.generate_simulation_word()
+#     if word not in testing_pool:
+#         testing_pool.append(word)
+#         count+=1
 
-testing_pool_df = pd.DataFrame(testing_pool, columns=['word'])
+# testing_pool_df = pd.DataFrame(testing_pool, columns=['word'])
 
-testing_pool_df.to_csv('problem_w_unobservable_events/simulation_words.csv', index=False)
+# testing_pool_df.to_csv('problem_w_unobservable_events/simulation_words.csv', index=False)

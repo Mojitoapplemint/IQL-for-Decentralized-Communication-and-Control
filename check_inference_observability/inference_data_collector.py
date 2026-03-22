@@ -6,22 +6,47 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 from inference_q import S_1, S_2, A1_OBS, A2_OBS, get_action, q_training, FOLDER_NAME
 
+m_L_states={
+        0: 'q0',
+        1: 'q1',
+        2: 'q2',
+        3: 'q3',
+        4: 'q4',
+        5: 'q5',
+        6: 'q6',
+        7: 'q7',
+        8: 'q8',
+        9: 'q9',
+        10: 'q10',
+        11: 'q11',
+        12: 'q12',
+        13: 'q13',
+        14: 'q14',
+        15: 'q1a',
+        16:'k3',
+        17:'x0',
+        18:'x1',
+        19:'k1',
+        20:'k2',
+        21:'x2',
+        -1: '⊥',
+    }
 
 successful_protocol_dict = {}
 failed_protocol_dict = {}
 result_dict = {}
-session_count = 10
+session_count = 100
 for i in range(session_count):
     print(f"{i}/{session_count} done", end="\r")
     env = gym.make('InferenceEnv-v0', render_mode=None, string_mode="training")
     
-    q_1, q_2 = q_training(env, epochs=100000, alpha=0.1, gamma=0.9, epsilon=0.1, print_process=False)
+    q_1, q_2 = q_training(env, epochs=100000, alpha=0.00001, gamma=0.9, min_epsilon=0.1, print_process=False)
     
     env = gym.make('InferenceEnv-v0', render_mode=None, string_mode="simulation")
     
     fail_count = 0
     
-    test_session = 500
+    test_session = 7
     
     for _ in range(test_session):
         # print("here")
@@ -109,7 +134,7 @@ failed_protocol_df = pd.DataFrame(list(failed_protocol_dict.items()), columns=['
 print(f"{np.sum(successful_protocols_df['Counts'])}/{session_count} sessions converged to a successful protocol.")
 
 for key in result_dict:
-    print(f"<{key[0]}, {key[1]}, {key[2]}> => Count: {result_dict[key]}")
+    print(f"<{m_L_states[key[0]]}, {m_L_states[key[1]]}, {m_L_states[key[2]]}> => Count: {result_dict[key]}")
 
 successful_protocols_df.to_csv(f'{FOLDER_NAME}/successful_protocols.csv', index=False)
 failed_protocol_df.to_csv(f'{FOLDER_NAME}/failed_protocols.csv', index=False)
