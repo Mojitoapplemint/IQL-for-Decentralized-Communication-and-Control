@@ -354,7 +354,7 @@ A2_OBS = ['p', 'q', 'r']
 def epsilon_decay(min_epsilon, episode, max_epochs):
     initial_epsilon = 1.0
     
-    if episode <= 0.4*max_epochs:
+    if episode <= 0.2*max_epochs:
         return initial_epsilon
     
     return max(min_epsilon, initial_epsilon-(episode/(max_epochs)))
@@ -397,7 +397,8 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, min_epsilon=0.1, print_p
         agent_1_in_dead_state = False
         agent_2_in_dead_state = False
         
-        epsilon = epsilon_decay(min_epsilon, episode, epochs)
+        # epsilon = epsilon_decay(min_epsilon, episode, epochs)
+        epsilon = min_epsilon
         
         
         while not (terminated or truncated):

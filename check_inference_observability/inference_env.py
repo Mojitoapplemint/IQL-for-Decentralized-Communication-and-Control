@@ -11,8 +11,8 @@ gym.register(
 )
 
 class InferenceEnv(gym.Env):
-    COMMUNICATION_COST = 0
-    D_PENALTY = 10000000
+    COMMUNICATION_COST = 30
+    D_PENALTY = 100
     E_PENALTY = 0
     
     D_PEN_STATES = {17,18,21}
@@ -106,7 +106,7 @@ class InferenceEnv(gym.Env):
         
         self.word_generator = WordGenerator(max_star=max_star)
         
-        self.simulation_words = pd.read_csv('check_inference_observability/simulation_words2.csv')['word'].tolist()
+        self.simulation_words = pd.read_csv('check_inference_observability/simulation_words.csv')['word'].tolist()
         # self.simulation_words_index = np.random.randint(0, len(self.simulation_words)-1)
         self.simulation_words_index = 0
     
@@ -150,11 +150,8 @@ class InferenceEnv(gym.Env):
         return v_state, info
                 
     def v_transition(self, vector_label):
-        if self.string_mode == 'training':
-            self.system_state = self.m_L_transitions[self.system_state][vector_label[0]]
-        else:
-            self.system_state = self.m_L_transitions[self.system_state][vector_label[0]]
         
+        self.system_state = self.m_L_transitions[self.system_state][vector_label[0]]
         self.agent_1_state = self.m_L_bot_transitions[self.agent_1_state][vector_label[1]]
         self.agent_2_state = self.m_L_bot_transitions[self.agent_2_state][vector_label[2]]
 
@@ -214,14 +211,16 @@ class InferenceEnv(gym.Env):
             self.word_index += 1
             self.curr_event = self.word[self.word_index]
             
-        # State transition for 's' for simulation or stats mode
+        # State transition for 's' for simulation
         while self.curr_event == 's' and (self.string_mode == 'simulation'):
             
             # If agent 2 think it is in state where s must be disabled, then it disables it
             agent_2_disable = self.agent_2_state in self.STATES_DISABLE_SIGMA
             agent_1_disable = self.agent_1_state in self.STATES_DISABLE_SIGMA
             
-            if not (agent_2_disable or agent_1_disable):
+            is_disabled = agent_2_disable or agent_1_disable
+            
+            if not is_disabled:
                 self.v_transition(['s', 's', 's'])
                 
             if self.render_mode == 'human':
@@ -229,10 +228,10 @@ class InferenceEnv(gym.Env):
                 self.simulate(agent_1_disable = agent_1_disable, agent_2_disable=agent_2_disable)
             
             # Check simulation results based on system state and agent 2's disable status
-            if (self.system_state in self.E_PEN_STATES) and not (agent_2_disable or agent_1_disable):
+            if (self.system_state in self.E_PEN_STATES) and not is_disabled:
                 simulation_result = True
 
-            if (self.system_state in self.STATES_DISABLE_SIGMA) and (agent_2_disable or agent_1_disable):
+            if (self.system_state in self.STATES_DISABLE_SIGMA) and is_disabled:
                 simulation_result = True
                 
             # Updating current event to '$' indicating end of the word
@@ -240,10 +239,10 @@ class InferenceEnv(gym.Env):
             self.curr_event = self.word[self.word_index]
         
         
-        if (self.system_state in self.D_PEN_STATES) and self.agent_2_state ==-1:
+        if (self.system_state in self.D_PEN_STATES) and self.agent_1_state == -1 and self.agent_2_state == -1:
             terminated = True
             reward = -self.D_PENALTY
-        if (self.system_state in self.E_PEN_STATES) and self.agent_2_state ==-1:
+        if (self.system_state in self.E_PEN_STATES) and self.agent_1_state == -1 and self.agent_2_state == -1:
             terminated = True
             reward = -self.E_PENALTY
         elif self.curr_event == '$':

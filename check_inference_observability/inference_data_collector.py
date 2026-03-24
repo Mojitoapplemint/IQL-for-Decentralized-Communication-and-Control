@@ -34,19 +34,21 @@ m_L_states={
 
 successful_protocol_dict = {}
 failed_protocol_dict = {}
-result_dict = {}
-session_count = 100
+success_T_dict = {}
+fail_T_dict = {}
+session_count = 10
 for i in range(session_count):
     print(f"{i}/{session_count} done", end="\r")
     env = gym.make('InferenceEnv-v0', render_mode=None, string_mode="training")
     
-    q_1, q_2 = q_training(env, epochs=100000, alpha=0.00001, gamma=0.9, min_epsilon=0.1, print_process=False)
+    q_1, q_2 = q_training(env, epochs=10000, alpha=0.001, gamma=0.5, min_epsilon=0.1, print_process=False)
     
+    # env = gym.make('InferenceEnv-v0', render_mode="human", string_mode="simulation")
     env = gym.make('InferenceEnv-v0', render_mode=None, string_mode="simulation")
     
     fail_count = 0
     
-    test_session = 7
+    test_session = 100
     
     for _ in range(test_session):
         # print("here")
@@ -94,11 +96,15 @@ for i in range(session_count):
         if not simulation_result:
             fail_count += 1
     
-        if result_dict.get(tuple(v_state)) is None:
-            result_dict[tuple(v_state)] = 1
+            if fail_T_dict.get(tuple(v_state)) is None:
+                fail_T_dict[tuple(v_state)] = 1
+            else:
+                fail_T_dict[tuple(v_state)] += 1
         else:
-            result_dict[tuple(v_state)] += 1
-
+            if success_T_dict.get(tuple(v_state)) is None:
+                success_T_dict[tuple(v_state)] = 1
+            else:
+                success_T_dict[tuple(v_state)] += 1
 
 
     a1_protocol = np.zeros((q_1.shape[0]), dtype=int)
@@ -133,8 +139,13 @@ failed_protocol_df = pd.DataFrame(list(failed_protocol_dict.items()), columns=['
 
 print(f"{np.sum(successful_protocols_df['Counts'])}/{session_count} sessions converged to a successful protocol.")
 
-for key in result_dict:
-    print(f"<{m_L_states[key[0]]}, {m_L_states[key[1]]}, {m_L_states[key[2]]}> => Count: {result_dict[key]}")
+print("Terminal v states counts for successful protocols:")
+for key in success_T_dict:
+    print(f"<{m_L_states[key[0]]}, {m_L_states[key[1]]}, {m_L_states[key[2]]}> => Count: {success_T_dict[key]}")
+
+print("Terminal v states counts for failed protocols:")
+for key in fail_T_dict:
+    print(f"<{m_L_states[key[0]]}, {m_L_states[key[1]]}, {m_L_states[key[2]]}> => Count: {fail_T_dict[key]}")
 
 successful_protocols_df.to_csv(f'{FOLDER_NAME}/successful_protocols.csv', index=False)
 failed_protocol_df.to_csv(f'{FOLDER_NAME}/failed_protocols.csv', index=False)
