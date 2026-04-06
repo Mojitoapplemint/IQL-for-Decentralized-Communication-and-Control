@@ -5,43 +5,21 @@ import random
 import cyclic_problem_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
+from cyclic_problem_q import S_1, S_2, FOLDER_NAME, A1_OBS, A2_OBS
 
-# q_1 = pd.read_csv("./second_cyclic_problem/demo_q1_table.csv")
-# q_2 = pd.read_csv("./second_cyclic_problem/demo_q2_table.csv")
 
-# q_1 = q_1.drop(q_1.columns[[0]], axis=1).to_numpy()
-# q_2 = q_2.drop(q_2.columns[[0]], axis=1).to_numpy()
+q_1 = [0, 0, 0, 0, 0, 0, 0, 0]
+q_2 = [1, 0, 0, 0, 0, 0, 0, 0]
 
-q_1 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-q_2 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-
-PHI = {
-    (False, 1 ):0,
-    (False, 2 ):1,
-    (False, 3 ):2,
-    (False, 4 ):3,
-    (False, 5 ):4,
-    (False, 6 ):5,
-    (False, 7 ):6,
-    (False,-1 ):7,
-    (True, 1 ):8,
-    (True, 2 ):9,
-    (True, 3 ):10,
-    (True, 4 ):11,
-    (True, 5 ):12,
-    (True, 6 ):13,
-    (True, 7 ):14,
-    (True,-1 ):15,
-}
 
 string_mode = "simulation" # options: "simulation", "training"
 
-env = gym.make("CyclicEnv-v0", render_mode = None, string_mode=string_mode, max_star=5)
+env = gym.make("CyclicEnv-v1", render_mode = "human", string_mode=string_mode, max_star=5)
 
-count = 0
+success_count = 0
 communicate = [0,0]
 
-for i in range(1000):
+for i in range(5):
     terminated = False
     simulation_result = False
 
@@ -49,9 +27,9 @@ for i in range(1000):
 
     global_state, agent_1_belief, agent_2_belief = config
 
-    curr_symbol=info['input_alphabet']
+    curr_event=info['curr_event']
 
-    string = info['string']
+    word = info['word']
 
     agent_1_in_dead_state = False
     agent_2_in_dead_state = False
@@ -66,7 +44,7 @@ for i in range(1000):
     
 
     while not(terminated):
-        if curr_symbol == "a":
+        if curr_event in A1_OBS:
             
             agent_id=1
             
@@ -76,13 +54,10 @@ for i in range(1000):
 
                 reward_1 = 0
             
-            agent_1_row_num = PHI[(agent_2_in_dead_state, agent_1_belief)]
+            agent_1_row_num = S_1[(agent_1_belief, curr_event)]
             
-            if agent_2_in_dead_state:
-                agent_1_communicate = 0
-            else:
-                # agent_1_communicate = np.argmax(q_1[agent_1_row_num])
-                agent_1_communicate = q_1[agent_1_row_num]
+
+            agent_1_communicate = q_1[agent_1_row_num]
             
             if agent_1_communicate ==1:
                 communicate[0] += 1
@@ -91,15 +66,15 @@ for i in range(1000):
             
             global_state, agent_1_belief, agent_2_belief = config
             
-            commun_cost, penalty = reward
+            com_cost, penalty = reward
             
-            reward_1 += comm_cost
+            reward_1 += com_cost
             
             agent_2_in_dead_state = agent_2_belief == -1
             
-            curr_symbol=info['input_alphabet']
+            curr_event=info['curr_event']
                         
-        if curr_symbol == "b":
+        if curr_event in A2_OBS:
             agent_id=2
             
             if agent_2_prev_row_num != -1 :
@@ -108,27 +83,25 @@ for i in range(1000):
 
                 reward_2 = 0
             
-            agent_2_row_num = PHI[(agent_1_in_dead_state, agent_2_belief)]
+            agent_2_row_num = S_2[(agent_2_belief, curr_event)]
             
-            if agent_1_in_dead_state:
-                agent_2_communicate = 0
-            else:        
-                # agent_2_communicate = np.argmax(q_2[agent_2_row_num])
-                agent_2_communicate = q_2[agent_2_row_num]
+     
+            agent_2_communicate = q_2[agent_2_row_num]
                 
             if agent_2_communicate ==1:
                 communicate[1] += 1
+                
             config, reward, terminated, simulation_result, info = env.step((agent_id, agent_2_communicate))
             
-            comm_cost, penalty = reward
+            com_cost, penalty = reward
             
             global_state, agent_1_belief, agent_2_belief = config
         
-            reward_2 += comm_cost
+            reward_2 += com_cost
             
             agent_1_in_dead_state = agent_1_belief == -1
             
-            curr_symbol=info['input_alphabet']
+            curr_event=info['curr_event']
 
     reward_2 += penalty
     reward_1 += penalty
@@ -142,16 +115,6 @@ for i in range(1000):
     print(cumulative_reward)
     
     if simulation_result:
-        count += 1
+        success_count += 1
 print(communicate)
-print(count)
-
-# q_1_comm_protocol = [0 for _ in range (len(PHI))]
-# q_2_comm_protocol = [0 for _ in range (len(PHI))]
-# for i in range(len(PHI)//2):
-#     q_1_comm_protocol[i] = np.argmax(q_1[i])
-#     q_2_comm_protocol[i] = np.argmax(q_2[i])
-
-# protocol_key = (tuple(q_1_comm_protocol), tuple(q_2_comm_protocol))
-
-# print(protocol_key)
+print(f"Success count: {success_count}")

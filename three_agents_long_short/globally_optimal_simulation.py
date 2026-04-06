@@ -8,7 +8,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 from three_agents_ls_q import S_1, S_3, ACTIONS,A1_OBS, A3_OBS, get_action
 
 
-env = gym.make('ThreeAgentsLSEnv-v0', render_mode=None, string_mode="simulation")
+env = gym.make('ThreeAgentsLSEnv-v1', render_mode=None, string_mode="simulation")
 
 fail_count = 0
 return_values = [0,0,0]
@@ -21,7 +21,6 @@ for i in range(4):
 
     _, agent_1_belief, agent_2_belief, agent_3_belief = state
 
-    agent_1_in_dead_state, agent_2_in_dead_state, agent_3_in_dead_state = False, False, False
 
     terminated = False
     simulation_result = False
@@ -34,7 +33,7 @@ for i in range(4):
         if curr_event in A1_OBS:
             agent_id = 1        
             
-            s_1 = S_1[(agent_1_belief,curr_event, agent_2_in_dead_state, agent_3_in_dead_state)]
+            s_1 = S_1[(agent_1_belief,curr_event)]
             
             # Choosing action only based on the Q value; never explore
             if curr_event == 'a' and agent_1_belief == 1:
@@ -59,7 +58,7 @@ for i in range(4):
         if curr_event in A3_OBS:
             agent_id = 3
             
-            s_3 = S_3[(agent_3_belief, curr_event, agent_1_in_dead_state, agent_2_in_dead_state)]
+            s_3 = S_3[(agent_3_belief, curr_event)]
             
             # Choosing action only based on the Q value; never explore
             if curr_event == 'c' and agent_3_belief == 1:
@@ -82,11 +81,6 @@ for i in range(4):
         
         _, agent_1_belief, agent_2_belief, agent_3_belief = config
         
-        agent_1_in_dead_state = agent_1_belief == -1
-        
-        agent_2_in_dead_state = agent_2_belief == -1
-        
-        agent_3_in_dead_state = agent_3_belief == -1
         
         curr_event=info['curr_event']
         
@@ -112,9 +106,7 @@ for i in range(4):
 print(f"Failure: {fail_count}")
     
     
-return_values = [return_values[i]/4 for i in range(3)]
-return_values[0] = round(return_values[0], 2)
-return_values[1] = round(return_values[1], 2)
-return_values[2] = round(return_values[2], 2)
+return_values = [round(return_values[i], 2)/4 for i in range(3)]
+
 
 print(return_values)

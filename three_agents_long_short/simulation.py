@@ -11,11 +11,11 @@ from three_agents_ls_q import S_1, S_3, ACTIONS,A1_OBS, A3_OBS, get_action
 # # q_2 = pd.read_csv('three_agents_exp/three_agents_exp_q2.csv').to_numpy()
 # q_3 = pd.read_csv('three_agents_exp/three_agents_exp_q3.csv').to_numpy()
 
-q_1=[0, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-q_3=[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+q_1=[0, 3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+q_3=[0, 3, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
-env = gym.make('ThreeAgentsLSEnv-v0', render_mode="human", string_mode="simulation")
+env = gym.make('ThreeAgentsLSEnv-v1', render_mode="human", string_mode="simulation")
 
 fail_count = 0
 
@@ -41,7 +41,7 @@ for i in range(4):
         if curr_event in A1_OBS:
             agent_id = 1        
             
-            s_1 = S_1[(agent_1_belief,curr_event, agent_2_in_dead_state, agent_3_in_dead_state)]
+            s_1 = S_1[(agent_1_belief,curr_event)]
             
             # Choosing action only based on the Q value; never explore
             # a1_action = get_action(q_1, agent_j_in_dead_state=agent_2_in_dead_state, agent_k_in_dead_state=agent_3_in_dead_state, row_num=s_1, epsilon=0)
@@ -77,7 +77,7 @@ for i in range(4):
         if curr_event in A3_OBS:
             agent_id = 3
             
-            s_3 = S_3[(agent_3_belief, curr_event, agent_1_in_dead_state, agent_2_in_dead_state)]
+            s_3 = S_3[(agent_3_belief, curr_event)]
             
             # Choosing action only based on the Q value; never explore
             # a3_action = get_action(q_3, agent_j_in_dead_state=agent_1_in_dead_state, agent_k_in_dead_state=agent_2_in_dead_state, row_num=s_3, epsilon=0)

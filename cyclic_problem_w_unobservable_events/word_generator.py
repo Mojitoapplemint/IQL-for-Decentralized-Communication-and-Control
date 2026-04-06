@@ -1,5 +1,6 @@
 import random
 import pandas as pd
+FOLDER_NAME = "remove_assmp_1/cyclic_problem_w_unobservable_events"
 
 class WordGenerator:
     def __init__(self, max_star=5,):
@@ -19,9 +20,7 @@ class WordGenerator:
     
     
     def generate_simulation_word(self):
-        '''
-        Generates a random simulation word from regular expression (abd|bad)*absd(abd|bad)* (abs|bas)
-        '''
+
         word = ''
         
         for _ in range( random.randint(1, self.max_star)):
@@ -37,13 +36,13 @@ class WordGenerator:
         return word
         
 
-# generator = WordGenerator(max_star=6)
+# generator = WordGenerator(max_star=5)
 
 # testing_pool = []
 
 # count = 0
 
-# while count<500:
+# while count<100:
 #     word = generator.generate_simulation_word()
 #     if word not in testing_pool:
 #         testing_pool.append(word)
@@ -51,5 +50,5 @@ class WordGenerator:
 
 # testing_pool_df = pd.DataFrame(testing_pool, columns=['word'])
 
-# testing_pool_df.to_csv('cyclic_problem_w_unobservable_events/simulation_words.csv', index=False)        
+# testing_pool_df.to_csv(f'{FOLDER_NAME}/simulation_words.csv', index=False)        
         

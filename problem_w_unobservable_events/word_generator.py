@@ -20,7 +20,7 @@ class WordGenerator:
         """
         
         # Choose one of the 5 alternatives randomly
-        choice = random.randint(1, 10)
+        choice = random.randint(1, 6)
         
         if choice == 1:
             # Pattern: axac

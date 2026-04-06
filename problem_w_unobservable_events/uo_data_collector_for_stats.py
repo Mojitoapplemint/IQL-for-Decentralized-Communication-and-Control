@@ -2,8 +2,7 @@ import numpy as np
 import gymnasium as gym
 import pandas as pd
 import uo_problem_env
-from uo_problem_q import q_training
-from uo_problem_q import S_1, S_2, A1_OBS, A2_OBS, FOLDER_NAME
+from uo_problem_q import q_training, S_1, S_2, A1_OBS, A2_OBS, FOLDER_NAME
 
 
 m_bottom={
@@ -29,23 +28,24 @@ m_bottom={
     -1: {-1},
 }
 
-epochs=10000
+epochs=20000
 alpha=0.01
-gamma=0.9
-epsilon=0.1
+gamma=0.1
+epsilon=0.2
+exp_number = 2
 
 fail_rate_count={}
 over_comm_rate_count={}
 success_dict = {}
 result_dict = {}
-session_count = 100
+session_count = 1000
 
 for i in range(session_count):
     print(str(100*i/session_count)+"%","done" , end="\r")
-    env = gym.make('UOEnv-v0', render_mode=None, string_mode="training")
+    env = gym.make('UOEnv-v1', render_mode=None, string_mode="training")
     q_1, q_2 = q_training(env, epochs=epochs, alpha=alpha, gamma=gamma, epsilon=epsilon)
 
-    env = gym.make('UOEnv-v0', render_mode=None, string_mode="simulation")
+    env = gym.make('UOEnv-v1', render_mode=None, string_mode="simulation")
 
     fail_count = 0
     over_comm_count = 0
@@ -65,44 +65,31 @@ for i in range(session_count):
 
         global_state, agent_1_belief, agent_2_belief = config
 
-        agent_1_in_dead_state = False
-        agent_2_in_dead_state = False
-
         while not (terminated):
             if curr_event in A1_OBS:
                 
                 agent_id=1
-                agent_1_row_num = S_1[(agent_1_belief, curr_event, agent_2_in_dead_state)]
+                agent_1_row_num = S_1[(agent_1_belief, curr_event)]
 
-                
-                if agent_2_in_dead_state:
-                    agent_1_communicate = 0
-                else:
-                    agent_1_communicate = np.argmax(q_1[agent_1_row_num])
+                agent_1_communicate = np.argmax(q_1[agent_1_row_num])
                     
                 config, _, terminated, simulation_result, info = env.step((agent_id, agent_1_communicate))
                 
                 global_state, agent_1_belief, agent_2_belief = config
                 
-                agent_2_in_dead_state = agent_2_belief == -1
 
                 
                 curr_event=info['curr_event']
                             
             if curr_event in A2_OBS:
                 agent_id=2
-                agent_2_row_num = S_2[(agent_2_belief, curr_event, agent_1_in_dead_state)]
-
-                if agent_1_in_dead_state:
-                    agent_2_communicate = 0
-                else:        
-                    agent_2_communicate = np.argmax(q_2[agent_2_row_num])
+                agent_2_row_num = S_2[(agent_2_belief, curr_event)]
+     
+                agent_2_communicate = np.argmax(q_2[agent_2_row_num])
 
                 config, _, terminated, simulation_result, info = env.step((agent_id, agent_2_communicate))
                 
                 global_state, agent_1_belief, agent_2_belief = config
-                
-                agent_1_in_dead_state = agent_1_belief == -1
                 
                 curr_event=info['curr_event']
         
@@ -160,4 +147,4 @@ over_comm_rate_df = pd.DataFrame(list(over_comm_rate_count.items()), columns=['O
 print(over_comm_rate_df)
 
 success_protocols_df = pd.DataFrame(list(success_dict.items()), columns=['Protocol', 'Success Count'])
-success_protocols_df.to_csv(f"./problem_w_unobservable_events/exp1-2_a_{alpha}_g_{gamma}_e_{epsilon}.csv", index=False)
+success_protocols_df.to_csv(f"./{FOLDER_NAME}/successful_protocols_exp{exp_number}.csv", index=False)

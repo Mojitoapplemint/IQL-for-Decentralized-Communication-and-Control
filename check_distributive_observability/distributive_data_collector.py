@@ -10,14 +10,14 @@ successful_protocol_dict = {}
 failed_protocol_dict = {}
 success_T_dict = {}
 fail_T_dict = {}
-session_count = 100
+session_count = 1000
 for i in range(session_count):
     print(f"{i}/{session_count} done", end="\r")
-    env = gym.make('DistributiveEnv-v0', render_mode=None, string_mode="training")
+    env = gym.make('DistributiveEnv-v1', render_mode=None, string_mode="training")
     
     q_1, q_2 = q_training(env, epochs=10000, alpha=0.01, gamma=0.1, epsilon=0.1, print_process=False)
     
-    env = gym.make('DistributiveEnv-v0', render_mode=None, string_mode="simulation")
+    env = gym.make('DistributiveEnv-v1', render_mode=None, string_mode="simulation")
     
     fail_count = 0
     
@@ -33,35 +33,29 @@ for i in range(session_count):
         curr_event = info["curr_event"]
         
         _, agent_1_belief, agent_2_belief = v_state
-
-        agent_1_in_dead_state, agent_2_in_dead_state = False, False
         
         while not terminated:
             if curr_event in A1_OBS:
                 agent_id = 1        
                 
-                s_1 = S_1[(agent_1_belief, curr_event, agent_2_in_dead_state)]
+                s_1 = S_1[(agent_1_belief, curr_event)]
                 
                 # Choosing action only based on the Q value; never explore
-                a1_action = get_action(q_1, is_opponent_dead=agent_2_in_dead_state, row_num=s_1, epsilon=0)
+                a1_action = get_action(q_1, row_num=s_1, epsilon=0)
                                 
                 v_state, reward, terminated, simulation_result, info = env.step((agent_id, a1_action))
                 
             if curr_event in A2_OBS:
                 agent_id = 2
                 
-                s_2 = S_2[(agent_2_belief, curr_event, agent_1_in_dead_state)]
+                s_2 = S_2[(agent_2_belief, curr_event)]
                 
                 # Choosing action only based on the Q value; never explore
-                a2_action = get_action(q_2, is_opponent_dead=agent_1_in_dead_state, row_num=s_2, epsilon=0)
+                a2_action = get_action(q_2, row_num=s_2, epsilon=0)
                 
                 v_state, reward, terminated, simulation_result, info = env.step((agent_id, a2_action))
                 
             _, agent_1_belief, agent_2_belief = v_state
-        
-            agent_1_in_dead_state = agent_1_belief == -1
-            
-            agent_2_in_dead_state = agent_2_belief == -1
                         
             curr_event=info['curr_event']
     
@@ -121,4 +115,4 @@ for key in fail_T_dict:
     print(f"<{key[0]}, {key[1]}, {key[2]}> => Count: {fail_T_dict[key]}")
 
 successful_protocols_df.to_csv(f'{FOLDER_NAME}/successful_protocols.csv', index=False)
-# failed_protocol_df.to_csv(f'{FOLDER_NAME}/failed_protocols.csv', index=False)
+failed_protocol_df.to_csv(f'{FOLDER_NAME}/failed_protocols.csv', index=False)

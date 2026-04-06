@@ -6,7 +6,7 @@ from IPython.display import clear_output
 import pandas as pd
 
 gym.register(
-    id='InferenceEnv-v0',
+    id='InferenceEnv-v1',
     entry_point='inference_env:InferenceEnv',
 )
 
@@ -20,32 +20,6 @@ class InferenceEnv(gym.Env):
     E_PEN_STATES = {16,19,20}
     
     STATES_DISABLE_SIGMA = {3,8,13}
-    
-    m_L_states={
-        0: 'q0',
-        1: 'q1',
-        2: 'q2',
-        3: 'q3',
-        4: 'q4',
-        5: 'q5',
-        6: 'q6',
-        7: 'q7',
-        8: 'q8',
-        9: 'q9',
-        10: 'q10',
-        11: 'q11',
-        12: 'q12',
-        13: 'q13',
-        14: 'q14',
-        15: 'q1a',
-        16:'k3',
-        17:'x0',
-        18:'x1',
-        19:'k1',
-        20:'k2',
-        21:'x2',
-        -1: '⊥',
-    }
     
     m_L_transitions = {
         0: {"s": 0, "a": 1, "b": 5, "c": 10},
@@ -267,9 +241,9 @@ class InferenceEnv(gym.Env):
 
 
         if self.string_mode == 'training':
-            print(f"Resulting V structure state: <{self.m_L_states[self.system_state]}, {self.m_L_states[self.agent_1_state]}, {self.m_L_states[self.agent_2_state]}>")
+            print(f"Resulting V structure state: <{self.system_state}, {self.agent_1_state}, {self.agent_2_state}>")
         elif self.string_mode == 'simulation':
-            print(f"Resulting V structure state: <{self.m_L_states[self.system_state]}, {self.m_L_states[self.agent_1_state]}, {self.m_L_states[self.agent_2_state]}>")
+            print(f"Resulting V structure state: <{self.system_state}, {self.agent_1_state}, {self.agent_2_state}>")
 
     
     def simulate(self, agent_1_disable=False, agent_2_disable=False):
@@ -303,11 +277,11 @@ class InferenceEnv(gym.Env):
         print(
         "                                      s __                                    \n"
         "                                       |  v                                   \n"
-        "                   s __          p    +q1a-+   m    +q04-+   s    +-k3-+       \n"
+        "                   s __          p    +-15-+   m    +-04-+   s    +-16-+       \n"
         f"                    |  v      /-----> |  {a[15]} | -----> |  {a[4]} | {block}-{block}-{block}> |  {a[16]} |       \n"
-        "                   +q01-+    /        +----+     -> +----+        +----+       \n"
+        "                   +-01-+    /        +----+     -> +----+        +----+       \n"
         f"             /---> |  {a[1]} | --+                 m /                              \n"
-        "         a  /      +----+    \\        +q02-+ ---    +q03-+        +-x0-+       \n"
+        "         a  /      +----+    \\        +-02-+ ---    +-03-+        +-17-+       \n"
         f"           /                  \\-----> |  {a[2]} | -----> |  {a[3]} | {block} {block} {block}> |  {a[17]} |       \n"
         "          /                      m    +----+   p    +----+   s    +----+       \n"
         "         |                             \\  ^                                    \n"
@@ -315,11 +289,11 @@ class InferenceEnv(gym.Env):
         "         |                                                                    \n"
         "         |                            s __                                    \n"
         "         |                             |  v                                   \n"
-        "   s __  |         s __          q    +q06-+        +q08-+   s    +-x1-+       \n"
+        "   s __  |         s __          q    +-06-+        +-08-+   s    +-18-+       \n"
         f"    |  v |          |  v      /-----> |  {a[6]} | -----> |  {a[8]} | {block} {block} {block}> |  {a[18]} |       \n"
-        "     +q00-+   b    +q05-+    /        +----+        +----+        +----+       \n"
+        "     +-00-+   b    +-05-+    /        +----+        +----+        +----+       \n"
         f"     |  {a[0]} | -----> |  {a[5]} | --+                                                  \n"
-        "     +----+        +----+    \\        +q07-+        +q09-+        +-k1-+       \n"
+        "     +----+        +----+    \\        +-07-+        +-09-+        +-19-+       \n"
         f"         |                    \\-----> |  {a[7]} | -----> |  {a[9]} | {block}-{block}-{block}> |  {a[19]} |       \n"
         "         |                       r    +----+        +----+   s    +----+       \n"
         "         |                             \\  ^                                     \n"
@@ -327,11 +301,11 @@ class InferenceEnv(gym.Env):
         "         |                                                                     \n"
         "         |                            s __                                     \n"
         "         |                             |  v                                    \n"
-        "          \\        s __          q    +q12-+   m    +q14-+   s    +-k2-+       \n"
+        "          \\        s __          q    +-12-+   m    +-14-+   s    +-20-+       \n"
         f"           \\        |  v      /-----> |  {a[12]} | -----> |  {a[14]} | {block}-{block}-{block}> |  {a[20]} |       \n"
-        "         c  \\      +q10-+    /        +----+        +----+        +----+       \n"
+        "         c  \\      +-10-+    /        +----+        +----+        +----+       \n"
         f"             \\---> |  {a[10]} | --+                                                  \n"
-        "                   +----+    \\        +q11-+        +q13-+        +-x2-+       \n"
+        "                   +----+    \\        +-11-+        +-13-+        +-21-+       \n"
         f"                              \\-----> |  {a[11]} | -----> |  {a[13]} | {block} {block} {block}> |  {a[21]} |       \n"
         "                                 p    +----+   m    +----+   s    +----+       \n"
         "                                       \\  ^                                    \n"

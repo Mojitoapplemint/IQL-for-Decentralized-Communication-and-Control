@@ -6,16 +6,18 @@ from word_generator import WordGenerator
 import pandas as pd
 
 gym.register(
-    id="UOEnv-v0",
+    id="UOEnv-v1",
     entry_point="uo_problem_env:UOEnv",
 )
 
 class UOEnv(gym.Env):
     COMMUNICATE_COST = 1
-    PENALTY_11 = 500 # For Exp 1
-    # PENALTY_11 = 250 # For Exp 2
-    # PENALTY_11 = 0 # For Exp 3
-    PENALTY_9 = 500
+    PENALTY_E = 50 # For Exp 1
+    # PENALTY_E = 25 # For Exp 2
+    # PENALTY_E = 0   # For Exp 3
+    PENALTY_D =50
+    
+    # 45,1000,1000
     
     D_PEN_STATES = {9}
     
@@ -210,12 +212,12 @@ class UOEnv(gym.Env):
 
         if self.system_state in self.E_PEN_STATES and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
-            penalty -=self.PENALTY_11
+            penalty -=self.PENALTY_E
             terminated = True
 
         if self.system_state in self.D_PEN_STATES and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
-            penalty -=self.PENALTY_9
+            penalty -=self.PENALTY_D
             terminated = True
         elif self.word[self.event_index]=="$":
             terminated = True
@@ -257,6 +259,7 @@ class UOEnv(gym.Env):
                 self.agent_1_belief = self.m_L_bot_transition[self.agent_1_belief].get(curr_symbol)
                 if communicate == 1:
                     self.communication_count+=1
+                    comm_cost-=self.COMMUNICATE_COST
                     self.agent_2_belief = self.m_L_bot_transition[self.agent_2_belief].get(curr_symbol)
             
             if self.render_mode == 'human':
@@ -289,6 +292,7 @@ class UOEnv(gym.Env):
                 print(f"\nAgent {agent_id} communicated on '{curr_symbol}'")
 
             if self.render_mode == 'human':
+                print(f"\nAgent {agent_id} did not communicate on '{curr_symbol}'")
                 self.simulate()
     
         
@@ -309,12 +313,12 @@ class UOEnv(gym.Env):
         
         if self.system_state in self.E_PEN_STATES and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
-            penalty -=self.PENALTY_11
+            penalty -=self.PENALTY_E
             terminated = True
 
         if self.system_state in self.D_PEN_STATES and  self.agent_1_belief ==-1 and self.agent_2_belief ==-1:
             
-            penalty -=self.PENALTY_9
+            penalty -=self.PENALTY_D
             terminated = True
             
         elif self.word[self.event_index]=="$":

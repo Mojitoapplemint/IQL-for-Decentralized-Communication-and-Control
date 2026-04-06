@@ -6,13 +6,20 @@ from IPython.display import clear_output
 import random
 
 gym.register(
-    id="ThreeAgentsEnv-v0",
+    id="ThreeAgentsEnv-v1",
     entry_point="three_agents_env:ThreeAgentsEnv",
 )
 
 class ThreeAgentsEnv(gym.Env):
     COMMUNICATION_COST = 30
-    PENALTY = 100
+    D_PENALTY = 100
+    E_PENALTY = 0
+    
+    D_PEN_STATES = [17,20,22]
+    
+    E_PEN_STATES = [18,19,21]
+    
+    STATES_DISABLE_SIGMA = [5,10,15]
     
     m_L_transitions = {
         1: {'a':2, 'b':7, 'c':12},
@@ -64,7 +71,7 @@ class ThreeAgentsEnv(gym.Env):
     L_tilde = ["abcs", "bcas", "cabs", "acbs", "bacs", "cbas"]
     
     def __init__(self, render_mode=None, string_mode='training'):
-        self.action_space = gym.spaces.Discrete(4) 
+        self.action_space = gym.spaces.Discrete(4)
         self.observation_space = gym.spaces.Box(low=-1, high=22, shape=(4,), dtype=np.int32)
         
         assert render_mode is None or render_mode in self.metadata['render_modes']
@@ -179,10 +186,13 @@ class ThreeAgentsEnv(gym.Env):
             self.training_word_index += 1
             curr_event=self.input_word[self.training_word_index] 
         
-        
-        if self.system_state in [17,18,19,20,21,22] and self.agent_1_state == -1 and self.agent_2_state == -1 and self.agent_3_state == -1:
+        if self.system_state in self.D_PEN_STATES and self.agent_1_state == -1 and self.agent_2_state == -1 and self.agent_3_state == -1:
             terminated = True
-            reward -= self.PENALTY
+            reward -= self.D_PENALTY
+        
+        elif self.system_state in self.E_PEN_STATES and self.agent_1_state == -1 and self.agent_2_state == -1 and self.agent_3_state == -1:
+            terminated = True
+            reward -= self.E_PENALTY
         
         elif curr_event == '$':
             terminated = True
@@ -244,9 +254,9 @@ class ThreeAgentsEnv(gym.Env):
         
         
         if curr_event == 's':
-            agent_1_disable = self.agent_1_state in [5,10,15]
-            agent_2_disable = self.agent_2_state in [5,10,15]
-            agent_3_disable = self.agent_3_state in [5,10,15]
+            agent_1_disable = self.agent_1_state in self.STATES_DISABLE_SIGMA
+            agent_2_disable = self.agent_2_state in self.STATES_DISABLE_SIGMA
+            agent_3_disable = self.agent_3_state in self.STATES_DISABLE_SIGMA
             
             if not (agent_1_disable or agent_2_disable or agent_3_disable):
             
@@ -266,16 +276,21 @@ class ThreeAgentsEnv(gym.Env):
             self.training_word_index += 1
             curr_event=self.input_word[self.training_word_index] 
 
-            if self.system_state in [18,19, 21] and not (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state in self.E_PEN_STATES and not (agent_1_disable or agent_2_disable or agent_3_disable):
                 simulation_result = True
             
-            if self.system_state in [5,10,15] and (agent_1_disable or agent_2_disable or agent_3_disable):
+            if self.system_state in self.STATES_DISABLE_SIGMA and (agent_1_disable or agent_2_disable or agent_3_disable):
                 simulation_result = True
-            
-        if curr_event == '$':
+          
+        if self.system_state in self.D_PEN_STATES and self.agent_1_state == -1 and self.agent_2_state == -1 and self.agent_3_state == -1:
             terminated = True
-            if not simulation_result:
-                reward -= 100
+            reward -= self.D_PENALTY
+        
+        elif self.system_state in self.E_PEN_STATES and self.agent_1_state == -1 and self.agent_2_state == -1 and self.agent_3_state == -1:
+            terminated = True
+            reward -= self.E_PENALTY  
+        elif curr_event == '$':
+            terminated = True
         
         
         config = (self.system_state, self.agent_1_state, self.agent_2_state, self.agent_3_state)
@@ -317,13 +332,13 @@ class ThreeAgentsEnv(gym.Env):
         print(
             f" +-22-+    s   +-15-+    b   +-13-+                                        +-3-+   c    +-5-+   s    +-17-+  \n"
             f" |  {a[22]} | <{block_h} {block_h} {block_h} |  {a[15]} | <----- |  {a[13]} | <--                                --> | {a[3]} | -----> | {a[5]} | {block_h} {block_h} {block_h}> |  {a[17]} |  \n"
-            f" +----+        +----+        +----+    \ a                          b /    +---+        +---+        +----+  \n"
-            f"                                        \                            /                         \n"
+            f" +----+        +----+        +----+    \\ a                          b /    +---+        +---+        +----+  \n"
+            f"                                        \\                            /                         \n"
             f"                                        +-12-+                   +-2-+                         \n"
             f"                                        |  {a[12]} |<--- c       a --->| {a[2]} |                         \n"
-            f"                                        +----+    \         /    +---+                         \n"
-            f"                                        /          \       /         \                         \n"
-            f" +-21-+    s   +-16-+    a   +-14-+    / b           +-1-+          c \    +-4-+   b    +-6-+   s    +-18-+  \n"
+            f"                                        +----+    \\         /    +---+                         \n"
+            f"                                        /          \\       /         \\                         \n"
+            f" +-21-+    s   +-16-+    a   +-14-+    / b           +-1-+          c \\    +-4-+   b    +-6-+   s    +-18-+  \n"
             f" |  {a[21]} | <{block_h}-{block_h}-{block_h} |  {a[16]} | <----- |  {a[14]} | <--              | {a[1]} |             --> | {a[4]} | -----> | {a[6]} | {block_h}-{block_h}-{block_h}> |  {a[18]} |  \n"
             f" +----+        +----+        +----+                  +---+                 +---+        +---+        +----+  \n"
             f"                                                       |                                       \n"
@@ -332,8 +347,8 @@ class ThreeAgentsEnv(gym.Env):
             f"                                                     +-7-+                                     \n"
             f"                                                     | {a[7]} |                                     \n"
             f"                                                     +---+                                     \n"
-            f"                                                     /   \                                     \n"
-            f"                                                  c /     \ a                                  \n"
+            f"                                                     /   \\                                     \n"
+            f"                                                  c /     \\ a                                  \n"
             f"                                                   v       v                                   \n"
             f"                                               +-8-+       +-9-+                               \n"
             f"                                               | {a[8]} |       | {a[9]} |                               \n"

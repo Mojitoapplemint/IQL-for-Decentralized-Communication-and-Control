@@ -40,9 +40,9 @@ for index, row in successful_protocols.iterrows():
     communication_count_c = 0
     
     communication_count_x_in_5 = 0
-    communication_count_y_in_4 = 0
+    communication_count_y_in_4 = 0 
     
-    env = gym.make('ThreeAgentsLSEnv-v0', render_mode=None, string_mode="simulation")
+    env = gym.make('ThreeAgentsLSEnv-v1', render_mode=None, string_mode="simulation")
     
     
     return_values = [0,0,0]
@@ -71,7 +71,7 @@ for index, row in successful_protocols.iterrows():
             if curr_event in A1_OBS:
                 agent_id = 1        
                 
-                a1_row_num = S_1[(agent_1_belief,curr_event, agent_2_in_dead_state, agent_3_in_dead_state)]
+                a1_row_num = S_1[(agent_1_belief,curr_event)]
                 
                 a1_action = q_1[a1_row_num]
                 a1_action = ACTIONS[a1_action]
@@ -90,7 +90,7 @@ for index, row in successful_protocols.iterrows():
             if curr_event in A3_OBS:
                 agent_id = 3
                 
-                a3_row_num = S_3[(agent_3_belief, curr_event, agent_1_in_dead_state, agent_2_in_dead_state)]
+                a3_row_num = S_3[(agent_3_belief, curr_event)]
                 
                 a3_action = q_3[a3_row_num]
                 a3_action = ACTIONS[a3_action]
@@ -107,12 +107,6 @@ for index, row in successful_protocols.iterrows():
                 a3_return += comm_cost
             
             system_state, agent_1_belief, agent_2_belief, agent_3_belief = v_state    
-                
-            agent_1_in_dead_state = agent_1_belief == -1
-            
-            agent_2_in_dead_state = agent_2_belief == -1
-            
-            agent_3_in_dead_state = agent_3_belief == -1
             
             curr_event=info['curr_event']
         

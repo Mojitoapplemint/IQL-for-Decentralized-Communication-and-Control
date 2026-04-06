@@ -6,16 +6,16 @@ from IPython.display import clear_output
 import pandas as pd
 
 gym.register(
-    id='ThreeAgentsLSEnv-v0',
+    id='ThreeAgentsLSEnv-v1',
     entry_point='three_agents_ls_env:ThreeAgentsLSEnv',
 )
 
 class ThreeAgentsLSEnv(gym.Env):
-    COMMUNICATION_COST = 2.5
+    COMMUNICATION_COST = 4
     EXPENSIVE_COMMUNICATION_COST = 100
     EXPENSIVE_COMMUNICATION = ['x', 'y']
     D_PENALTY = 400
-    E_PENALTY = 0
+    E_PENALTY = 100
     
     D_PEN_STATES = {10,13}
     
@@ -66,7 +66,7 @@ class ThreeAgentsLSEnv(gym.Env):
         
         self.word_generator = WordGenerator(max_star=max_star)
         
-        self.simulation_words = pd.read_csv('three_agents_long_short/words_for_stats.csv')['word'].tolist()
+        self.simulation_words = pd.read_csv('with_assmp_1/three_agents_long_short/words_for_stats.csv')['word'].tolist()
         self.simulation_words_index = 0
     
     def reset(self, seed=None, options=None):

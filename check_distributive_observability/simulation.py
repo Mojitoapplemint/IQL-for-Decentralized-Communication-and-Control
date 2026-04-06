@@ -8,14 +8,14 @@ from distributive_q import S_1, S_2, A1_OBS, A2_OBS, get_action, q_training, FOL
 
 
     
-env = gym.make('DistributiveEnv-v0', render_mode="human", string_mode="simulation")
+env = gym.make('DistributiveEnv-v1', render_mode="human", string_mode="simulation")
 
 # Communicating 'a'
 # q_1=[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 # q_2=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 # Communicating 'b'
-q_1 = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+q_1 = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 q_2 = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
@@ -34,32 +34,23 @@ for i in range(test_session):
 
     _, agent_1_belief, agent_2_belief = v_state
 
-    agent_1_in_dead_state, agent_2_in_dead_state = False, False
-
     while not terminated:
         if curr_event in A1_OBS:
             agent_id = 1        
             
-            s_1 = S_1[(agent_1_belief, curr_event, agent_2_in_dead_state)]
-            
-            # a1_action = np.argmax(q_1[s_1])
-            if agent_2_in_dead_state:
-                a1_action = 0
-            else:   
-                a1_action = q_1[s_1]
+            s_1 = S_1[(agent_1_belief, curr_event)]
+
+            a1_action = q_1[s_1]
                             
             v_state, reward, terminated, simulation_result, info = env.step((agent_id, a1_action))
             
         if curr_event in A2_OBS:
             agent_id = 2
             
-            s_2 = S_2[(agent_2_belief, curr_event, agent_1_in_dead_state)]
+            s_2 = S_2[(agent_2_belief, curr_event)]
             
-            # a2_action = np.argmax(q_2[s_2])
-            if agent_1_in_dead_state:
-                a2_action = 0
-            else:
-                a2_action = q_2[s_2]
+
+            a2_action = q_2[s_2]
             
             v_state, reward, terminated, simulation_result, info = env.step((agent_id, a2_action))
             

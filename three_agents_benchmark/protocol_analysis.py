@@ -2,14 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import gymnasium as gym
-import sys
-sys.path.insert(0, './problem_w_unobservable_events')
 import three_agents_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-from three_agent_q import S, ACTIONS
+from three_agent_q import ACTIONS, FOLDER_NAME
 
-successful_protocols = pd.read_csv('three_agents_benchmark/successful_protocols_with_returns.csv')
+successful_protocols = pd.read_csv(f'{FOLDER_NAME}/successful_protocols_with_returns.csv')
 
 a1_idle = successful_protocols[successful_protocols["Agent 1 Return"] == 0]
 a2_idle = successful_protocols[successful_protocols["Agent 2 Return"] == 0]
@@ -41,20 +39,20 @@ for protocols, index in [(a1_idle, "Agent 1"), (a2_idle, "Agent 2"), (a3_idle, "
     joint_protocol = {}
     for word in ['abcs$', 'bcas$', 'cabs$', 'acbs$', 'bacs$', 'cbas$']:
         joint_protocol[word] = (
-            {key:[0,0,0,0] for key in S},  # Agent 1
-            {key:[0,0,0,0] for key in S},  # Agent 2
-            {key:[0,0,0,0] for key in S}   # Agent 3
+            {i:[0,0,0,0] for i in [-1]+list(range(1,23))},  # Agent 1
+            {i:[0,0,0,0] for i in [-1]+list(range(1,23))},  # Agent 2
+            {i:[0,0,0,0] for i in [-1]+list(range(1,23))}   # Agent 3
         )
     
     for row in protocols["Protocol"]:
             
         protocol = row.replace("(","").replace(")","").split(", ")
         protocol = [int(x) for x in protocol]
-        q_1 = protocol[0:92].copy()
-        q_2 = protocol[92:184].copy()
-        q_3 = protocol[184:276].copy()
+        q_1 = protocol[0:23].copy()
+        q_2 = protocol[23:46].copy()
+        q_3 = protocol[46:69].copy()
         
-        env = gym.make('ThreeAgentsEnv-v0', render_mode=None, string_mode="simulation")
+        env = gym.make('ThreeAgentsEnv-v1', render_mode=None, string_mode="simulation")
         
         
         for i in range(6):
@@ -80,11 +78,11 @@ for protocols, index in [(a1_idle, "Agent 1"), (a2_idle, "Agent 2"), (a3_idle, "
             while not(terminated):
                 if curr_event == 'a':
                     agent_id = 1
-                    a1_row_num = S[(a1_obs, a2_in_dead_state, a3_in_dead_state)]
+                    a1_row_num = a1_obs
                     
                     a1_action = q_1[a1_row_num]
                     
-                    joint_protocol[input_word][0][(a1_obs, a2_in_dead_state, a3_in_dead_state)][a1_action] += 1
+                    joint_protocol[input_word][0][a1_obs][a1_action] += 1
                     
                     a1_action = ACTIONS[a1_action]
                     
@@ -101,11 +99,11 @@ for protocols, index in [(a1_idle, "Agent 1"), (a2_idle, "Agent 2"), (a3_idle, "
                     
                 if curr_event == 'b':
                     agent_id = 2
-                    a2_row_num = S[(a2_obs, a1_in_dead_state, a3_in_dead_state)]
+                    a2_row_num = a2_obs
                     
                     a2_action = q_2[a2_row_num]
                     
-                    joint_protocol[input_word][1][(a2_obs, a1_in_dead_state, a3_in_dead_state)][a2_action] += 1
+                    joint_protocol[input_word][1][a2_obs][a2_action] += 1
         
                     a2_action = ACTIONS[a2_action]
                     
@@ -122,11 +120,11 @@ for protocols, index in [(a1_idle, "Agent 1"), (a2_idle, "Agent 2"), (a3_idle, "
                     
                 if curr_event == 'c':
                     agent_id = 3
-                    a3_row_num = S[(a3_obs, a1_in_dead_state, a2_in_dead_state)]
+                    a3_row_num = a3_obs
                     
                     a3_action = q_3[a3_row_num]
                     
-                    joint_protocol[input_word][2][(a3_obs, a1_in_dead_state, a2_in_dead_state)][a3_action] += 1
+                    joint_protocol[input_word][2][a3_obs][a3_action] += 1
                     
                     a3_action = ACTIONS[a3_action]
                     
@@ -141,7 +139,7 @@ for protocols, index in [(a1_idle, "Agent 1"), (a2_idle, "Agent 2"), (a3_idle, "
 
     
     for word in joint_protocol:
-        for key in S:
+        for key in joint_protocol[word][0]:
             joint_protocol[word][0][key]=[x//len(protocols) for x in joint_protocol[word][0][key]]
             joint_protocol[word][1][key]=[x//len(protocols) for x in joint_protocol[word][1][key]]
             joint_protocol[word][2][key]=[x//len(protocols) for x in joint_protocol[word][2][key]]

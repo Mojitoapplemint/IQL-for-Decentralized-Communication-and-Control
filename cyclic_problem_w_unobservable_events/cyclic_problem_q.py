@@ -2,35 +2,38 @@ import numpy as np
 import gymnasium as gym
 import pandas as pd
 import random
-import sys
-sys.path.insert(0, './cyclic_problem_w_unobservable_events')
 import cyclic_problem_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
-PHI = {
-    (False, 1 ):0,
-    (False, 2 ):1,
-    (False, 3 ):2,
-    (False, 4 ):3,
-    (False, 5 ):4,
-    (False, 6 ):5,
-    (False, 7 ):6,
-    (False,-1 ):7,
-    (True, 1 ):8,
-    (True, 2 ):9,
-    (True, 3 ):10,
-    (True, 4 ):11,
-    (True, 5 ):12,
-    (True, 6 ):13,
-    (True, 7 ):14,
-    (True,-1 ):15,
+FOLDER_NAME = "cyclic_problem_w_unobservable_events"
+
+S_1 = {
+    (1 ,'a'):0,
+    (2 ,'a'):1,
+    (3 ,'a'):2,
+    (4 ,'a'):3,
+    (5 ,'a'):4,
+    (6 ,'a'):5,
+    (7 ,'a'):6,
+    (-1 ,'a'):7,
 }
 
+S_2 = {
+    (1 ,'b'):0,
+    (2 ,'b'):1,
+    (3 ,'b'):2,
+    (4 ,'b'):3,
+    (5 ,'b'):4,
+    (6 ,'b'):5,
+    (7 ,'b'):6,
+    (-1 ,'b'):7,
+}
 
-def get_action(q_table, is_opponent_lost, row_num, epsilon):
-    if is_opponent_lost:
-        return 0
+A1_OBS = ['a']
+A2_OBS = ['b']
+
+def get_action(q_table, row_num, epsilon):
     if random.uniform(0, 1) < epsilon:
         return np.argmin(q_table[row_num]) # Explore: choose the action that is not best
     else:
@@ -38,8 +41,8 @@ def get_action(q_table, is_opponent_lost, row_num, epsilon):
 
 def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_process=False):
 
-    q_1 = np.zeros((len(PHI), env.action_space.n))
-    q_2 = np.zeros((len(PHI), env.action_space.n))
+    q_1 = np.zeros((len(S_1), env.action_space.n))
+    q_2 = np.zeros((len(S_2), env.action_space.n))
 
     for epoch in range(epochs):
         if (print_process and epoch%100==0):
@@ -51,8 +54,8 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
         
         _, agent_1_belief, agent_2_belief = config
         
-        agent_1_prev_row_num = -1
-        agent_2_prev_row_num = -1
+        s_1 = -1
+        s_2 = -1
         
         terminated = False
         truncated = False
@@ -63,20 +66,17 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
         reward_1 = 0
         reward_2 = 0
         
-        agent_1_in_dead_state = False
-        agent_2_in_dead_state = False
-        
         while not (terminated or truncated):
-            if curr_event == "a":
+            if curr_event in A1_OBS:
                 
                 agent_id=1
-                agent_1_row_num = PHI[(agent_2_in_dead_state, agent_1_belief)]
-                if agent_1_prev_row_num != -1 :
+                next_s_1 = S_1[(agent_1_belief, curr_event)]
+                if s_1 != -1 :
                     # Q-value update for agent 1
-                    q_1[agent_1_prev_row_num][agent_1_communicate] += alpha * (reward_1 + gamma * np.max(q_1[agent_1_row_num]) - q_1[agent_1_prev_row_num][agent_1_communicate])
+                    q_1[s_1][agent_1_communicate] += alpha * (reward_1 + gamma * np.max(q_1[next_s_1]) - q_1[s_1][agent_1_communicate])
                     reward_1 = 0
                 
-                agent_1_communicate = get_action(q_1, agent_2_in_dead_state, agent_1_row_num, epsilon)
+                agent_1_communicate = get_action(q_1, next_s_1, epsilon)
                 config, reward, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
                 
                 _, agent_1_belief, agent_2_belief = config
@@ -89,18 +89,18 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
                 
                 curr_event=info['curr_event']
                 
-                agent_1_prev_row_num = agent_1_row_num
+                s_1 = next_s_1
                             
-            if curr_event == "b":
+            if curr_event in A2_OBS:
                 agent_id=2
-                agent_2_row_num = PHI[(agent_1_in_dead_state, agent_2_belief)]
-                
-                if agent_2_prev_row_num != -1:
+                next_s_2 = S_2[(agent_2_belief, curr_event)]
+
+                if s_2 != -1:
                     # Q-value update for agent 2
-                    q_2[agent_2_prev_row_num][agent_2_communicate] += alpha * (reward_2 + gamma * np.max(q_2[agent_2_row_num]) - q_2[agent_2_prev_row_num][agent_2_communicate])
+                    q_2[s_2][agent_2_communicate] += alpha * (reward_2 + gamma * np.max(q_2[next_s_2]) - q_2[s_2][agent_2_communicate])
                     reward_2 = 0
                 
-                agent_2_communicate = get_action(q_2, agent_1_in_dead_state, agent_2_row_num, epsilon)
+                agent_2_communicate = get_action(q_2, next_s_2, epsilon)
                 config, reward, terminated, truncated, info = env.step((agent_id, agent_2_communicate))
                 
                 _, agent_1_belief, agent_2_belief = config
@@ -113,15 +113,15 @@ def q_training(env, epochs=10000, alpha=0.1, gamma=0.9, epsilon=0.1, print_proce
                 
                 curr_event=info['curr_event']
                 
-                agent_2_prev_row_num = agent_2_row_num
+                s_2 = next_s_2
         
 
         reward_2 += penalty
         reward_1 += penalty
         
         # Final Q-value updates
-        q_1[agent_1_prev_row_num][agent_1_communicate] += alpha * (reward_1 + gamma * 0 - q_1[agent_1_prev_row_num][agent_1_communicate])
-        q_2[agent_2_prev_row_num][agent_2_communicate] += alpha * (reward_2 + gamma * 0 - q_2[agent_2_prev_row_num][agent_2_communicate])
+        q_1[s_1][agent_1_communicate] += alpha * (reward_1 + gamma * 0 - q_1[s_1][agent_1_communicate])
+        q_2[s_2][agent_2_communicate] += alpha * (reward_2 + gamma * 0 - q_2[s_2][agent_2_communicate])
 
         # print(curr_symbol)
         

@@ -8,13 +8,16 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 from uo_problem_q import FOLDER_NAME
 
-file_name = "exp3_a_0.01_g_0.1_e_0.1_with_stats"
+exp_number = 3
 
-protocols_df = pd.read_csv(f'{FOLDER_NAME}/{file_name}.csv')
+file_name = f"successful_protocols_exp{exp_number}"
+# file_name = "baselines"
+
+protocol_df = pd.read_csv(f'{FOLDER_NAME}/{file_name}_with_stats.csv')
 
 # print(protocols_df.columns[14:])
 
-protocol = protocols_df[protocols_df.columns[14:]]
+protocol = protocol_df[protocol_df.columns[20:]]
 
 unique_protocols = protocol.drop_duplicates()
 
@@ -37,9 +40,9 @@ print(unique_protocols)
 count = []
 for row in unique_protocols.itertuples():
     
-    mask = protocols_df[unique_protocols.columns].eq(row[1:]).all(axis=1)
+    mask = protocol_df[unique_protocols.columns].eq(row[1:]).all(axis=1)
     
-    mask_df = protocols_df[mask]
+    mask_df = protocol_df[mask]
     
     count.append(mask_df['Success Count'].sum())
     

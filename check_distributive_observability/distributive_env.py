@@ -6,12 +6,12 @@ from IPython.display import clear_output
 import pandas as pd
 
 gym.register(
-    id='DistributiveEnv-v0',
+    id='DistributiveEnv-v1',
     entry_point='distributive_env:DistributiveEnv',
 )
 
 class DistributiveEnv(gym.Env):
-    COMMUNICATION_COST = 10
+    COMMUNICATION_COST = 20
     D_PENALTY = 100
     E_PENALTY = 0
     

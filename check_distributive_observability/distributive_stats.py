@@ -41,7 +41,7 @@ for index, row in protocols_df.iterrows():
     
     cumulative_reward = [0,0]
     
-    env = gym.make("DistributiveEnv-v0", render_mode = None, string_mode="simulation")
+    env = gym.make("DistributiveEnv-v1", render_mode = None, string_mode="simulation")
     
     a1_communication_protocol = {i: [0,0] for i in S_1.keys()}
     a2_communication_protocol = {i: [0,0] for i in S_2.keys()}
@@ -87,18 +87,16 @@ for index, row in protocols_df.iterrows():
                     t_1+=1
                     reward_1 = 0
 
-                if agent_2_in_dead_state:
-                    agent_1_communicate = 0
+
+                s_2 = S_1[(agent_1_belief, curr_event)]
+                agent_1_communicate = q_1[s_2]
+                
+                if agent_1_communicate ==1:
+                    communicate_count[0] += 1
+                    (a1_communication_protocol[agent_1_belief, curr_event])[0] += 1
                 else:
-                    s_2 = S_1[(agent_1_belief, curr_event, agent_2_in_dead_state)]
-                    agent_1_communicate = q_1[s_2]
-                    
-                    if agent_1_communicate ==1:
-                        communicate_count[0] += 1
-                        (a1_communication_protocol[agent_1_belief, curr_event, agent_2_in_dead_state])[0] += 1
-                    else:
-                        communicate_count[1] += 1
-                        (a1_communication_protocol[agent_1_belief, curr_event, agent_2_in_dead_state])[1] += 1
+                    communicate_count[1] += 1
+                    (a1_communication_protocol[agent_1_belief, curr_event])[1] += 1
 
 
                 config, reward, terminated, truncated, info = env.step((agent_id, agent_1_communicate))
@@ -123,21 +121,18 @@ for index, row in protocols_df.iterrows():
                     t_2+=1
                     reward_2 = 0
                 
-                
-                if agent_1_in_dead_state:
-                    a2_action = 0
+            
+                s_2 = S_2[(agent_2_belief, curr_event)]
+                a2_action = q_2[s_2]
+            
+                if a2_action ==1:
+                    
+                    communicate_count[2] += 1
+                    (a2_communication_protocol[agent_2_belief, curr_event])[0] += 1  
                 else:
-                    s_2 = S_2[(agent_2_belief, curr_event, agent_1_in_dead_state)]
-                    a2_action = q_2[s_2]
-                
-                    if a2_action ==1:
-                        
-                        communicate_count[2] += 1
-                        (a2_communication_protocol[agent_2_belief, curr_event, agent_1_in_dead_state])[0] += 1  
-                    else:
-                        communicate_count[3] += 1
-                        (a2_communication_protocol[agent_2_belief, curr_event, agent_1_in_dead_state])[1] += 1  
-                
+                    communicate_count[3] += 1
+                    (a2_communication_protocol[agent_2_belief, curr_event])[1] += 1  
+            
                 
                 config, reward, terminated, truncated, info = env.step((agent_id, a2_action))
                 
@@ -228,11 +223,11 @@ for i in range(len(a1_protocol_list)):
     
     print(f"\n================== {i}'th protocol ==================\nAgent 1 Communication Protocol:")
     for s in a1_protocol:
-        if (a1_protocol[s] != [0,0] and not s[2]):
-            print("In state ("+ s[0]+ ", "+str(s[2])+ ") Num Communicate '"+s[1]+"' : " + str(a1_protocol[s][0]) + " Num Not Communicate '"+s[1]+"' : " + str(a1_protocol[s][1]))
+        if (a1_protocol[s] != [0,0]):
+            print(f"In state ({s[0]}) Num Communicate '{s[1]}' : " + str(a1_protocol[s][0]) + " Num Not Communicate '{s[1]}' : " + str(a1_protocol[s][1]))
 
     print(f"\nAgent 2 Communication Protocol:")
     for s in a2_protocol:
-        if (a2_protocol[s] != [0,0] and not s[2]):
-            print("In state ("+ s[0]+ ", "+str(s[2])+ ") Num Communicate '"+s[1]+"' : " + str(a2_protocol[s][0]) + " Num Not Communicate '"+s[1]+"' : " + str(a2_protocol[s][1]))
+        if (a2_protocol[s] != [0,0]):
+            print(f"In state ({s[0]}) Num Communicate '{s[1]}' : " + str(a2_protocol[s][0]) + " Num Not Communicate '{s[1]}' : " + str(a2_protocol[s][1]))
 

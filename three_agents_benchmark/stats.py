@@ -5,7 +5,7 @@ import gymnasium as gym
 import three_agents_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-from three_agent_q import S, ACTIONS, FOLDER_NAME
+from three_agent_q import ACTIONS, FOLDER_NAME
 
 successful_protocols = pd.read_csv(f'{FOLDER_NAME}/successful_protocols.csv')
 # successful_protocols = pd.read_csv(f'{FOLDER_NAME}/successful_protocols_with_returns.csv')
@@ -29,11 +29,11 @@ for index, row in successful_protocols.iterrows():
     protocol = row["Protocol"].replace("(","").replace(")","").split(", ")
     protocol = [int(x) for x in protocol]
     
-    q_1 = protocol[0:92].copy()
-    q_2 = protocol[92:184].copy()
-    q_3 = protocol[184:276].copy()
+    q_1 = protocol[0:23].copy()
+    q_2 = protocol[23:46].copy()
+    q_3 = protocol[46:69].copy()
     
-    env = gym.make('ThreeAgentsEnv-v0', render_mode=None, string_mode="simulation")
+    env = gym.make('ThreeAgentsEnv-v1', render_mode=None, string_mode="simulation")
     
     return_values = [0,0,0]
     
@@ -41,16 +41,12 @@ for index, row in successful_protocols.iterrows():
         terminated = False
         simulation_result = False
 
-        state, info = env.reset()
+        v_state, info = env.reset()
         input_word = info["string"]
         
         curr_event = info["curr_event"]
         
-        _, a1_obs, a2_obs, a3_obs = state
-
-        a1_in_dead_state = False
-        a2_in_dead_state = False
-        a3_in_dead_state = False
+        _, agent_1_belief, agent_2_belief, agent_3_belief = v_state
         
         a1_return = 0
         a2_return = 0
@@ -61,7 +57,7 @@ for index, row in successful_protocols.iterrows():
         while not(terminated):
             if curr_event == 'a':
                 agent_id = 1
-                a1_row_num = S[(a1_obs, a2_in_dead_state, a3_in_dead_state)]
+                a1_row_num = agent_1_belief
                 
                 a1_action = q_1[a1_row_num]
                 
@@ -69,12 +65,9 @@ for index, row in successful_protocols.iterrows():
                 
                 communication_count[0] += np.sum(a1_action)
                 
-                state, reward, terminated, simulation_result, info = env.step((agent_id, a1_action))
+                v_state, reward, terminated, simulation_result, info = env.step((agent_id, a1_action))
                 
-                system_state, a1_obs, a2_obs, a3_obs = state
-                
-                a2_in_dead_state = a2_obs == -1
-                a3_in_dead_state = a3_obs == -1
+                system_state, agent_1_belief, agent_2_belief, agent_3_belief = v_state
                 
                 curr_event = info["curr_event"]
                 
@@ -84,7 +77,7 @@ for index, row in successful_protocols.iterrows():
                 
             if curr_event == 'b':
                 agent_id = 2
-                a2_row_num = S[(a2_obs, a1_in_dead_state, a3_in_dead_state)]
+                a2_row_num = agent_2_belief
                 
                 a2_action = q_2[a2_row_num]
     
@@ -92,12 +85,9 @@ for index, row in successful_protocols.iterrows():
                 
                 communication_count[1] += np.sum(a2_action)
                 
-                state, reward, terminated, simulation_result, info = env.step((agent_id, a2_action))
+                v_state, reward, terminated, simulation_result, info = env.step((agent_id, a2_action))
                 
-                system_state, a1_obs, a2_obs, a3_obs = state
-                
-                a1_in_dead_state = a1_obs == -1
-                a3_in_dead_state = a3_obs == -1
+                system_state, agent_1_belief, agent_2_belief, agent_3_belief = v_state
                 
                 curr_event = info["curr_event"]
                 communication_cost, penalty = reward
@@ -106,7 +96,7 @@ for index, row in successful_protocols.iterrows():
                 
             if curr_event == 'c':
                 agent_id = 3
-                a3_row_num = S[(a3_obs, a1_in_dead_state, a2_in_dead_state)]
+                a3_row_num = agent_3_belief
                 
                 a3_action = q_3[a3_row_num]
                 
@@ -114,12 +104,9 @@ for index, row in successful_protocols.iterrows():
                 
                 communication_count[2] += np.sum(a3_action)
                 
-                state, reward, terminated, simulation_result, info = env.step((agent_id, a3_action))
+                v_state, reward, terminated, simulation_result, info = env.step((agent_id, a3_action))
                 
-                system_state, a1_obs, a2_obs, a3_obs = state
-                
-                a1_in_dead_state = a1_obs == -1
-                a2_in_dead_state = a2_obs == -1
+                system_state, agent_1_belief, agent_2_belief, agent_3_belief = v_state
                 
                 curr_event = info["curr_event"]
                 

@@ -8,17 +8,25 @@ import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
 gym.register(
-    id="CyclicEnv-v0",
+    id="CyclicEnv-v1",
     entry_point="cyclic_problem_env:CyclicEnv",
 )
 
 class CyclicEnv(gym.Env):
 
-    COMMUNICATE_COST = 10
+    COMMUNICATE_COST = 3
     
-    PENALTY = 100
+    D_PEN = 10
+    E_PEN = 10
     
-    global_transitions={
+    D_PEN_STATES = {4}
+    
+    E_PEN_STATES = {7}
+    
+    STATES_DISABLE_SIGMA = {3}
+    STATES_ENABLE_SIGMA = {6}
+    
+    m_L_transitions={
         1:{'a': 2, 'b': 5},
         2:{'b': 3},
         3:{'d':1, 's': 4},
@@ -37,7 +45,7 @@ class CyclicEnv(gym.Env):
         -1:{-1},
     }
     
-    agent_0_transitions={
+    observer_transitions={
         1:{'a': 2, 'b': 5},
         2:{'b': 3},
         3:{'a':2, 'b': 5, 's': 4},
@@ -45,7 +53,7 @@ class CyclicEnv(gym.Env):
         6:{'a':2, 'b':5, 's':7},
     }
     
-    bottom_transitions={
+    m_L_bot_transitions={
         1:{'a': 2, 'b': 5, 's':-1},
         2:{'b': 3, 'a':-1, 's':-1},
         3:{'a': 2, 'b': 5, 's': 4},
@@ -112,19 +120,19 @@ class CyclicEnv(gym.Env):
         
         curr_symbol=self.word[self.word_index]
         
-        self.agent_0_state = self.agent_0_transitions[self.agent_0_state].get(curr_symbol)
+        self.agent_0_state = self.observer_transitions[self.agent_0_state].get(curr_symbol)
         if agent_id==1:
-            self.agent_1_belief = self.bottom_transitions[self.agent_1_belief].get(curr_symbol)
+            self.agent_1_belief = self.m_L_bot_transitions[self.agent_1_belief].get(curr_symbol)
             if communicate == 1:
                 comm_cost-=self.COMMUNICATE_COST
                 self.communication_count+=1
-                self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
+                self.agent_2_belief = self.m_L_bot_transitions[self.agent_2_belief].get(curr_symbol)
         elif agent_id==2:
-            self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
+            self.agent_2_belief = self.m_L_bot_transitions[self.agent_2_belief].get(curr_symbol)
             if communicate == 1:
                 self.communication_count+=1
                 comm_cost-=self.COMMUNICATE_COST
-                self.agent_1_belief = self.bottom_transitions[self.agent_1_belief].get(curr_symbol)
+                self.agent_1_belief = self.m_L_bot_transitions[self.agent_1_belief].get(curr_symbol)
         else:
             raise ValueError("Invalid agent_id. Must be 1 or 2.")
                 
@@ -137,9 +145,9 @@ class CyclicEnv(gym.Env):
         curr_symbol=self.word[self.word_index]
         
         if curr_symbol=='s':
-            self.agent_0_state=self.agent_0_transitions[self.agent_0_state].get('s')
-            self.agent_1_belief=self.bottom_transitions[self.agent_1_belief].get('s')
-            self.agent_2_belief=self.bottom_transitions[self.agent_2_belief].get('s')
+            self.agent_0_state=self.observer_transitions[self.agent_0_state].get('s')
+            self.agent_1_belief=self.m_L_bot_transitions[self.agent_1_belief].get('s')
+            self.agent_2_belief=self.m_L_bot_transitions[self.agent_2_belief].get('s')
         
             if self.render_mode == 'human':
                 self.render()
@@ -148,11 +156,11 @@ class CyclicEnv(gym.Env):
             
         # Penalty Assignment
 
-        if self.agent_0_state ==4 and self.agent_1_belief == -1 and self.agent_2_belief == -1:
-            penalty -= self.PENALTY
+        if self.agent_0_state in self.D_PEN_STATES and self.agent_1_belief == -1 and self.agent_2_belief == -1:
+            penalty -= self.D_PEN
             terminated = True
-        if self.agent_0_state ==7 and self.agent_1_belief == -1 and self.agent_2_belief == -1:
-            penalty -=  self.PENALTY
+        if self.agent_0_state in self.E_PEN_STATES and self.agent_1_belief == -1 and self.agent_2_belief == -1:
+            penalty -=  self.E_PEN
             terminated = True
         elif self.word[self.word_index]=="$":
             terminated = True
@@ -173,24 +181,24 @@ class CyclicEnv(gym.Env):
         # Note: In simulation mode, we still use variable "agent_0_state", but this refers to the actual global state.
         agent_id, communicate = action
         terminated = False
-        simulation_result = False # whether the simulation ends in success or failure
+        simulation_result = False 
         penalty = 0
         comm_cost = 0
         
         curr_symbol=self.word[self.word_index]
-        self.agent_0_state = self.global_transitions[self.agent_0_state].get(curr_symbol)
+        self.agent_0_state = self.m_L_transitions[self.agent_0_state].get(curr_symbol)
         if agent_id==1:
-            self.agent_1_belief = self.bottom_transitions[self.agent_1_belief].get(curr_symbol)
+            self.agent_1_belief = self.m_L_bot_transitions[self.agent_1_belief].get(curr_symbol)
             if communicate == 1:
                 self.communication_count+=1
                 comm_cost-=self.COMMUNICATE_COST
-                self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
+                self.agent_2_belief = self.m_L_bot_transitions[self.agent_2_belief].get(curr_symbol)
         elif agent_id==2:
-            self.agent_2_belief = self.bottom_transitions[self.agent_2_belief].get(curr_symbol)
+            self.agent_2_belief = self.m_L_bot_transitions[self.agent_2_belief].get(curr_symbol)
             if communicate == 1:
                 self.communication_count+=1
                 comm_cost-=self.COMMUNICATE_COST
-                self.agent_1_belief = self.bottom_transitions[self.agent_1_belief].get(curr_symbol)
+                self.agent_1_belief = self.m_L_bot_transitions[self.agent_1_belief].get(curr_symbol)
         else:
             raise ValueError("Invalid agent_id. Must be 1 or 2.")
         
@@ -203,50 +211,66 @@ class CyclicEnv(gym.Env):
         
         
         if curr_symbol=='s':
-            if self.agent_0_state ==6:
-                self.agent_0_state=self.global_transitions[self.agent_0_state].get('s')
-                self.agent_1_belief=self.bottom_transitions[self.agent_1_belief].get('s')
-                self.agent_2_belief=self.bottom_transitions[self.agent_2_belief].get('s')
-                if self.render_mode == 'human':
-                    self.simulate()
-                self.word_index += 1
-                curr_symbol=self.word[self.word_index]
+            if self.agent_0_state not in self.STATES_ENABLE_SIGMA and self.agent_0_state not in self.STATES_DISABLE_SIGMA:
+                raise ValueError(f"Invalid global state {self.agent_0_state} for symbol 's'. It should be in either STATES_ENABLE_SIGMA or STATES_DISABLE_SIGMA.")
+            
+            agent_1_disable_s = (self.agent_1_belief in self.STATES_DISABLE_SIGMA)
+            agent_2_disable_s = (self.agent_2_belief in self.STATES_DISABLE_SIGMA)
+            
+            if not(agent_1_disable_s or agent_2_disable_s):
+                self.agent_0_state=self.m_L_transitions[self.agent_0_state].get('s')
+                self.agent_1_belief=self.m_L_bot_transitions[self.agent_1_belief].get('s')
+                self.agent_2_belief=self.m_L_bot_transitions[self.agent_2_belief].get('s')
                 
-            elif self.agent_0_state ==3:
-                agent_1_disable_s = (self.agent_1_belief ==3)
-                agent_2_disable_s = (self.agent_2_belief ==3)
+            if self.render_mode == 'human':
+                self.simulate(agent_1_disable_s=agent_1_disable_s, agent_2_disable_s=agent_2_disable_s)
                 
-                if agent_1_disable_s or agent_2_disable_s:
-                    if self.render_mode == 'human':
-                        self.simulate(agent_1_disable_s, agent_2_disable_s)
-                    self.word_index+=1
-                    curr_symbol=self.word[self.word_index]               
-                
-                else:
-                    self.agent_0_state=self.global_transitions[self.agent_0_state].get('s')
-                    self.agent_1_belief=self.bottom_transitions[self.agent_1_belief].get('s')
-                    self.agent_2_belief=self.bottom_transitions[self.agent_2_belief].get('s')
+                  
+            self.word_index += 1
+            curr_symbol=self.word[self.word_index]
+            
+            if (self.agent_0_state in self.E_PEN_STATES) and not (agent_1_disable_s or agent_2_disable_s):
+                simulation_result = True
 
-                    if self.render_mode == 'human':
-                        print("Both agents failed to disable 's' in state 3")
-                        self.simulate(agent_1_disable_s, agent_2_disable_s)
+            if (self.agent_0_state in self.STATES_DISABLE_SIGMA) and (agent_1_disable_s or agent_2_disable_s):
+                simulation_result = True      
+            # if self.agent_0_state in self.STATES_ENABLE_SIGMA:
+                
+                
+            # elif self.agent_0_state in self.STATES_DISABLE_SIGMA:
+            #     agent_1_disable_s = (self.agent_1_belief in self.STATES_DISABLE_SIGMA)
+            #     agent_2_disable_s = (self.agent_2_belief in self.STATES_DISABLE_SIGMA)
+                
+            #     if agent_1_disable_s or agent_2_disable_s:
+            #         if self.render_mode == 'human':
+            #             self.simulate(agent_1_disable_s, agent_2_disable_s)
+            #         self.word_index+=1
+            #         curr_symbol=self.word[self.word_index]               
+                
+            #     else:
+            #         self.agent_0_state=self.global_transitions[self.agent_0_state].get('s')
+            #         self.agent_1_belief=self.bottom_transitions[self.agent_1_belief].get('s')
+            #         self.agent_2_belief=self.bottom_transitions[self.agent_2_belief].get('s')
+
+            #         if self.render_mode == 'human':
+            #             print("Both agents failed to disable 's' in state 3")
+            #             self.simulate(agent_1_disable_s, agent_2_disable_s)
                     
-        if curr_symbol == 'd':
-            self.agent_0_state = self.global_transitions[self.agent_0_state].get('d')
+        if self.agent_0_state not in self.D_PEN_STATES and curr_symbol == 'd':
+            self.agent_0_state = self.m_L_transitions[self.agent_0_state].get('d')
             if self.render_mode == 'human':
                 self.simulate()
             self.word_index += 1
             curr_symbol=self.word[self.word_index]
         
         
-        if self.agent_0_state ==4 and self.agent_1_belief == -1 and self.agent_2_belief == -1:
-            penalty -= self.PENALTY
+        if self.agent_0_state in self.D_PEN_STATES and self.agent_1_belief == -1 and self.agent_2_belief == -1:
+            penalty -= self.D_PEN
             terminated = True
-        if self.agent_0_state ==7 and self.agent_1_belief == -1 and self.agent_2_belief == -1:
-            penalty -=   self.PENALTY
+        if self.agent_0_state in self.E_PEN_STATES and self.agent_1_belief == -1 and self.agent_2_belief == -1:
+            penalty -=   self.E_PEN
             terminated = True
         elif self.word[self.word_index]=="$":
-            simulation_result = True
             terminated = True
 
         
@@ -264,7 +288,7 @@ class CyclicEnv(gym.Env):
         
         print(f"global state: {self.agent_0_state},\n agent 1's belief: {self.agent_1_belief}:{self.m_bottom[self.agent_1_belief]},\n agent 2's belief: {self.agent_2_belief}:{self.m_bottom[self.agent_2_belief]}>,\n Current symbol: '{self.word[self.word_index]}', # comm: {self.communication_count}")
         
-        block = "|"
+        block = ":"
         
         if agent_1_disable_s or agent_2_disable_s:
             block = "X"
