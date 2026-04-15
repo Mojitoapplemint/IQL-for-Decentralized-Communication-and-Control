@@ -15,6 +15,7 @@ for i in range(session_count):
     print(f"{i}/{session_count} done", end="\r")
     env = gym.make('ThreeAgentsLSEnv-v1', render_mode=None, string_mode="training")
     
+    # q_1, q_3 = q_training(env, epochs=50000, alpha=0.001, gamma=0.5, min_epsilon=0.01, print_process=False)
     q_1, q_3 = q_training(env, epochs=250000, alpha=0.0005, gamma=0.5, min_epsilon=0.01, print_process=False)
 
     
@@ -46,7 +47,7 @@ for i in range(session_count):
                 
                 a1_action = ACTIONS[a1_action]
                                 
-                config, reward, terminated, simulation_result, info = env.step((agent_id, a1_action))
+                v_state, reward, terminated, simulation_result, info = env.step((agent_id, a1_action))
                 
             if curr_event in A3_OBS:
                 agent_id = 3
@@ -58,10 +59,10 @@ for i in range(session_count):
                 
                 a3_action = ACTIONS[a3_action]
                 
-                config, reward, terminated, simulation_result, info = env.step((agent_id, a3_action))
+                v_state, reward, terminated, simulation_result, info = env.step((agent_id, a3_action))
                 
             
-            _, agent_1_belief, agent_2_belief, agent_3_belief = config
+            _, agent_1_belief, agent_2_belief, agent_3_belief = v_state
         
             curr_event=info['curr_event']
     
@@ -112,8 +113,8 @@ failed_protocol_df = pd.DataFrame(list(failed_protocol_dict.items()), columns=['
 
 print(f"{np.sum(successful_protocols_df['Counts'])}/{session_count} sessions converged to a successful protocol.")
 
-# for key in result_dict:
-#     print(f"<{key[0]}, {key[1]}, {key[2]}, {key[3]}> => Count: {result_dict[key]}")
+for key in result_dict:
+    print(f"<{key[0]}, {key[1]}, {key[2]}, {key[3]}> => Count: {result_dict[key]}")
 
 successful_protocols_df.to_csv(f'{FOLDER_NAME}/successful_protocols_exp_3.csv', index=False)
 failed_protocol_df.to_csv(f'{FOLDER_NAME}/failed_protocols_exp_3.csv', index=False)

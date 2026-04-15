@@ -17,6 +17,8 @@ ACTIONS = {
 }
 
 def epsilon_decay(min_epsilon, episode, max_epochs):
+    # return 0.1
+    
     if episode <= 0.2*max_epochs:
         return 1.0
     

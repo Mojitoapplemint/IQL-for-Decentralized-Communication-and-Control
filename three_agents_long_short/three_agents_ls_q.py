@@ -93,7 +93,7 @@ ACTIONS_INV ={
 
 
 def epsilon_decay(min_epsilon, episode, max_epochs):
-    if episode <= 0.55*max_epochs:
+    if episode <= 0.3*max_epochs:
         return 1.0
     
     initial_epsilon = 1.0

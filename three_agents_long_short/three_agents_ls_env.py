@@ -11,11 +11,13 @@ gym.register(
 )
 
 class ThreeAgentsLSEnv(gym.Env):
-    COMMUNICATION_COST = 4
+    COMMUNICATION_COST = 10
     EXPENSIVE_COMMUNICATION_COST = 100
     EXPENSIVE_COMMUNICATION = ['x', 'y']
     D_PENALTY = 400
     E_PENALTY = 100
+    
+    # 10 100 400 100
     
     D_PEN_STATES = {10,13}
     
@@ -171,7 +173,7 @@ class ThreeAgentsLSEnv(gym.Env):
         self.word_index += 1
         self.curr_event = self.word[self.word_index]
         
-        # State transition for completely unobservable event 'd' (Only applied when simulation/stats mode)
+        # State transition for completely unobservable event 'd' (Only applied when simulation)
         # while self.curr_event == 'd':
         #     self.v_transition(['d', '', '', ''])
             
@@ -191,7 +193,7 @@ class ThreeAgentsLSEnv(gym.Env):
             self.word_index += 1
             self.curr_event = self.word[self.word_index]
             
-        # State transition for 's' for simulation or stats mode
+        # State transition for 's' for simulation or
         if self.curr_event == 's' and (self.string_mode == 'simulation'):
             
             # If agent 2 think it is in state where s must be disabled, then it disables it

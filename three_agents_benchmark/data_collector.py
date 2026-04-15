@@ -4,18 +4,20 @@ import pandas as pd
 import three_agents_env
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
-from three_agent_q import q_training, ACTIONS, FOLDER_NAME, get_action
+from three_agent_q import q_training, ACTIONS, FOLDER_NAME
 
 success_dict = {}
 result_dict = {}
-session_count = 1000
+session_count = 100
+
+fail_dict = {}
 
 for i in range(session_count):
     print(str(100*i/session_count)+"%","done" , end="\r")
     
     env = gym.make('ThreeAgentsEnv-v1', render_mode=None, string_mode="training")
     
-    q_1, q_2, q_3 = q_training(env, max_epochs=10000, alpha=0.001, gamma=0.5, min_epsilon=0.1)
+    q_1, q_2, q_3 = q_training(env, max_epochs=10000, alpha=0.001, gamma=0.1 , min_epsilon=0.1)
     
     env = gym.make('ThreeAgentsEnv-v1', render_mode=None, string_mode="simulation")
     
@@ -33,17 +35,13 @@ for i in range(session_count):
         
         _, agent_1_belief, agent_2_belief, agent_3_belief = v_state
 
-        agent_1_in_dead_state = False
-        agent_2_in_dead_state = False
-        agent_3_in_dead_state = False
-
 
         while not(terminated):
             if curr_event == 'a':
                 agent_id = 1
                 agent_1_row_num = agent_1_belief
                 
-                a1_action = get_action(q_1, row_num=agent_1_row_num, epsilon=0.1)
+                a1_action = np.argmax(q_1[agent_1_row_num])
                 
                 a1_action = ACTIONS[a1_action]
                 
@@ -54,7 +52,7 @@ for i in range(session_count):
                 agent_id = 2
                 agent_2_row_num = agent_2_belief
                 
-                a2_action = get_action(q_2, row_num=agent_2_row_num, epsilon=0.1)
+                a2_action = np.argmax(q_2[agent_2_row_num])
                 
                 a2_action = ACTIONS[a2_action]
                 
@@ -64,7 +62,7 @@ for i in range(session_count):
                 agent_id = 3
                 agent_3_row_num = agent_3_belief
                 
-                a3_action = get_action(q_3, row_num=agent_3_row_num, epsilon=0.1)
+                a3_action = np.argmax(q_3[agent_3_row_num])
                 
                 a3_action = ACTIONS[a3_action]
                 
@@ -82,24 +80,32 @@ for i in range(session_count):
         else:
             result_dict[tuple(v_state)] += 1
     
+    a1_protocol = [np.argmax(q_1[i]) for i in range(q_1.shape[0])]
+    a2_protocol = [np.argmax(q_2[i]) for i in range(q_2.shape[0])]
+    a3_protocol = [np.argmax(q_3[i]) for i in range(q_3.shape[0])]
+    
+    protocol_key = (tuple(a1_protocol), tuple(a2_protocol), tuple(a3_protocol))
     if fail_count == 0:
-        a1_protocol = [np.argmax(q_1[i]) for i in range(q_1.shape[0])]
-        a2_protocol = [np.argmax(q_2[i]) for i in range(q_2.shape[0])]
-        a3_protocol = [np.argmax(q_3[i]) for i in range(q_3.shape[0])]
-        
-        protocol_key = (tuple(a1_protocol), tuple(a2_protocol), tuple(a3_protocol))
         if success_dict.get(protocol_key) is None:
             success_dict[protocol_key] = 1
         else:
             success_dict[protocol_key] += 1
-
-print(fail_count)
+    else:
+        if fail_dict.get(protocol_key) is None:
+            fail_dict[protocol_key] = 1
+        else:
+            fail_dict[protocol_key] += 1
 
 # print result dictionary
-for key in result_dict:
-    print(f"<{key[0]}, {key[1]}, {key[2]}, {key[3]}> => Count: {result_dict[key]}")
+# for key in result_dict:
+#     print(f"<{key[0]}, {key[1]}, {key[2]}, {key[3]}> => Count: {result_dict[key]}")
 
 # Save successful protocols to CSV
 successful_protocols_df = pd.DataFrame(list(success_dict.items()), columns=['Protocol', 'Counts'])
 successful_protocols_df.to_csv(f'{FOLDER_NAME}/successful_protocols.csv', index=False)
 
+# Save failed protocols to CSV
+failed_protocols_df = pd.DataFrame(list(fail_dict.items()), columns=['Protocol', 'Counts'])
+failed_protocols_df.to_csv(f'{FOLDER_NAME}/failed_protocols.csv', index=False)
+
+print(f"\n{failed_protocols_df['Counts'].sum()}")

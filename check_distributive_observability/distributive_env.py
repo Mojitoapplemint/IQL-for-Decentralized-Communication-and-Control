@@ -11,8 +11,8 @@ gym.register(
 )
 
 class DistributiveEnv(gym.Env):
-    COMMUNICATION_COST = 20
-    D_PENALTY = 100
+    COMMUNICATION_COST = 2
+    D_PENALTY = 10
     E_PENALTY = 0
     
     D_PEN_STATES = {6}

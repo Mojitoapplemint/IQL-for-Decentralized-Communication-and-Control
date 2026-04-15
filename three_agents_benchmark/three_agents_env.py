@@ -11,8 +11,8 @@ gym.register(
 )
 
 class ThreeAgentsEnv(gym.Env):
-    COMMUNICATION_COST = 30
-    D_PENALTY = 100
+    COMMUNICATION_COST = 4
+    D_PENALTY = 10
     E_PENALTY = 0
     
     D_PEN_STATES = [17,20,22]
